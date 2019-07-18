@@ -1,17 +1,19 @@
 import pandas as pd
 import re
 from src.util import extract_age_pattern, complete_binary
+import json
 
 
 class UserBehavior(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
     mid_pre = "../mid_data/"
     res_pre = "../result_data/"
+    # 对用户的每种行为进行打分
     behavior_score = {
         'clk': 1,
-        'collect': 3,
-        'cart': 5,
-        'buy': 10
+        'collect': 2,
+        'cart': 3,
+        'buy': 5
     }
     sex_map = {
         'F': '1111',
@@ -22,15 +24,37 @@ class UserBehavior(object):
         self.small = small
         self.train = self.load_train()
         self.user_feature = self.load_user_feature()
+        # 所有商品中,数量如下
+        # item_id = 10786748
+        # brand_id = 197784
+        # cate_id = 8381
+        # cate_1_id = 111
+        # price的极值不具参考价值
         self.item_feature = self.load_item_feature()
-        # self.export_user_item()
         pass
 
     def main(self):
         self.cal_user_item_score()
         self.cal_user_vector()
-
+        self.cal_item_vector()
         pass
+
+    def cal_item_vector(self):
+        with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
+            self.cate_1_dict = json.load(r)
+        with open(self.mid_pre + "cate_dict.json", 'r', encoding='utf-8') as r:
+            self.cate_dict = json.load(r)
+        with open(self.mid_pre + "brand_dict.json", 'r', encoding='utf-8') as r:
+            self.brand_dict = json.load(r)
+
+        self.item_feature['cate_1_id'] = self.item_feature['cate_1_id'].apply(lambda x: self.cat_1_to_vector(x))
+        self.item_feature['cate_id'] = self.item_feature['cate_id'].apply(lambda x: self.cat_to_vector(x))
+        self.item_feature['brand_id'] = self.item_feature['brand_id'].apply(lambda x: self.brand_id_to_vector(x))
+        self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_vector(x))
+
+        self.item_feature['vector'] = self.item_feature['cate_1_id'] + self.item_feature['cate_id'] + self.item_feature[
+            'brand_id'] + self.item_feature['price']
+        self.item_feature.drop(['cate_1_id', 'cate_id', 'brand_id', 'price'], axis=1, inplace=True)
 
     def cal_user_item_score(self):
         self.train['behavior_type'] = self.train['behavior_type'].map(self.behavior_score)
@@ -41,7 +65,7 @@ class UserBehavior(object):
     def cal_user_vector(self):
         # 转化性别为4维向量,不转变为1纬向量是为了平衡权重
         self.user_feature['gender'] = self.user_feature['gender'].map(self.sex_map)
-        # 转化年龄为6维向量，因为2的6次方 = 64
+        # 转化年龄为6维向量，因为2的6次方 = 64，年龄的范围是1-60，大于60的按60计算
         self.user_feature['age'] = self.user_feature['age'].apply(lambda x: self.age_to_vector(x))
         # 转化职业为4维向量，因为一共10种职业
         self.user_feature['career'] = self.user_feature['career'].apply(lambda x: self.career_to_vector(x))
@@ -49,11 +73,9 @@ class UserBehavior(object):
         self.user_feature['income'] = self.user_feature['income'].apply(lambda x: self.income_to_vector(x))
         # 将阶段转为10维向量
         self.user_feature['stage'] = self.user_feature['stage'].apply(lambda x: self.stage_to_vector(x))
-
         # 拼接向量，组成一个40纬的用户向量
         self.user_feature['vector'] = self.user_feature['gender'] + self.user_feature['age'] + self.user_feature[
             'career'] + self.user_feature['income'] + self.user_feature['stage']
-
         # 扔掉转化过的特征，节省内存
         self.user_feature.drop(['gender', 'age', 'career', 'income', 'stage'], inplace=True, axis=1)
 
@@ -70,7 +92,7 @@ class UserBehavior(object):
 
     @staticmethod
     def career_to_vector(career):
-        # 将career 转化为 4位的二进制
+        # 将career 转化为4位的二进制
         career_byte = bin(int(career))[2:]
         return complete_binary(career_byte, 4)
 
@@ -87,6 +109,35 @@ class UserBehavior(object):
         for index in stage_list:
             stage_vector[index - 1] = '1'
         return complete_binary("".join(stage_vector), 10)
+
+    def price_to_vector(self, price):
+        # 超过4000元的商品在总商品中占比约2.5%
+        price = 1024 if price > 1024 else int(price)
+        price = bin(price)[2:]
+        # 商品价格补齐为10纬
+        return complete_binary(price, 10)
+
+    def brand_id_to_vector(self, brand):
+        """
+        brand的种类一共197784种，约为总商品数的0.02
+        brand
+        :param brand:
+        :return:
+        """
+        brand = self.brand_dict[str(brand)]
+        brand = int((197783 - brand) / (197783 - 0) * 8182)
+        brand_bin = bin(brand)[2:]
+        return complete_binary(brand_bin, 13)
+
+    def cat_1_to_vector(self, cat_1):
+        cat_1 = self.cate_1_dict[str(cat_1)]
+        cat_1 = bin(cat_1)[2:]
+        return complete_binary(cat_1, 7)
+
+    def cat_to_vector(self, cat):
+        cat = self.cate_dict[str(cat)]
+        cat = bin(cat)[2:]
+        return complete_binary(cat, 10)
 
     def load_train(self):
         file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"
@@ -110,7 +161,8 @@ class UserBehavior(object):
         print("load user feature, shape:", data.shape)
         return data
 
-    def pre_process_user_feature(self, data_df):
+    @staticmethod
+    def pre_process_user_feature(data_df):
         # 去掉缺失值太多的列
         data_df.drop("edu", axis=1, inplace=True)
         # 填补缺失值
@@ -125,9 +177,15 @@ class UserBehavior(object):
         data = pd.read_csv(file_name, sep='\t', header=None,
                            names=['item_id', 'cate_1_id', 'cate_id', 'brand_id', 'price'])
         print("load item feature, shape:", data.shape)
+        data = self.pre_process_item_feature(data)
         return data
 
+    @staticmethod
+    def pre_process_item_feature(data):
+        data.fillna({'cate_1_id': data['cate_1_id'].mode().values[0], 'cate_id': data['cate_id'].mode().values[0],
+                     'brand_id': data['brand_id'].mode().values[0], 'price': data['price'].mean()})
+        return data
 
 if __name__ == '__main__':
-    ub = UserBehavior()
+    ub = UserBehavior(small=True)
     ub.main()
