@@ -3,7 +3,6 @@ import re
 from src.util import extract_age_pattern, complete_binary
 import json
 
-
 class UserBehavior(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
     mid_pre = "../mid_data/"
@@ -23,21 +22,32 @@ class UserBehavior(object):
     def __init__(self, small=True):
         self.small = small
         self.train = self.load_train()
+
+        """
+        所有用户数量：987791
+        income最大值: 23469
+        stage一共10个阶段
+        career一共10种，序号1-10，float型
+        age 最大值为 >= 60
+        """
         self.user_feature = self.load_user_feature()
-        # 所有商品中,数量如下
-        # item_id = 10786748
-        # brand_id = 197784
-        # cate_id = 8381
-        # cate_1_id = 111
-        # price的极值不具参考价值
+
+        """
+        所有商品中,数量如下
+        item_id = 10786748
+        brand_id = 197784
+        cate_id = 8381
+        cate_1_id = 111
+        price的极值不具参考价值
         self.item_feature = self.load_item_feature()
-        pass
+        """
+        self.item_feature = self.load_item_feature()
 
     def main(self):
         self.cal_user_item_score()
         self.cal_user_vector()
         self.cal_item_vector()
-        pass
+        return self.user_feature['vector'], self.item_feature['vector'], self.user_item_score
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
@@ -55,12 +65,20 @@ class UserBehavior(object):
         self.item_feature['vector'] = self.item_feature['cate_1_id'] + self.item_feature['cate_id'] + self.item_feature[
             'brand_id'] + self.item_feature['price']
         self.item_feature.drop(['cate_1_id', 'cate_id', 'brand_id', 'price'], axis=1, inplace=True)
+        self.item_feature['vector'] = self.item_feature['vector'].apply(lambda x: self.str_vector_2_embedding(x))
+
+    @staticmethod
+    def str_vector_2_embedding(str_vector):
+        vector = list(str_vector)
+        vector = list(map(int, vector))
+        return vector
 
     def cal_user_item_score(self):
         self.train['behavior_type'] = self.train['behavior_type'].map(self.behavior_score)
         user_item_df = self.train.groupby(by=['user_id', 'item_id'])['behavior_type'].sum().reset_index()
         # user_item_df.sort_values(by='behavior_type', ascending=False, inplace=True)
-        user_item_df.to_csv(self.res_pre + 'user_item_score.csv')
+        # user_item_df.to_csv(self.res_pre + 'user_item_score.csv')
+        self.user_item_score = user_item_df
 
     def cal_user_vector(self):
         # 转化性别为4维向量,不转变为1纬向量是为了平衡权重
@@ -78,6 +96,7 @@ class UserBehavior(object):
             'career'] + self.user_feature['income'] + self.user_feature['stage']
         # 扔掉转化过的特征，节省内存
         self.user_feature.drop(['gender', 'age', 'career', 'income', 'stage'], inplace=True, axis=1)
+        self.user_feature['vector'] = self.user_feature['vector'].apply(lambda x: self.str_vector_2_embedding(x))
 
     @staticmethod
     def age_to_vector(age):
@@ -125,7 +144,7 @@ class UserBehavior(object):
         :return:
         """
         brand = self.brand_dict[str(brand)]
-        brand = int((197783 - brand) / (197783 - 0) * 8182)
+        brand = int((brand - 0) / (197783 - 0) * 8182)
         brand_bin = bin(brand)[2:]
         return complete_binary(brand_bin, 13)
 
