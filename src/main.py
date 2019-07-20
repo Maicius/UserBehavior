@@ -43,15 +43,18 @@ class UserBehavior(object):
         self.item_feature = self.load_item_feature()
 
     def main(self, merge=False):
-        self.cal_user_item_score()
+        # self.cal_user_item_score()
         self.cal_user_vector()
         self.cal_item_vector()
+        self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
+        self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
         if merge:
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
             self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
-            self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
-            self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
+
+            sample = self.user_item_score.sample(frac=0.1)
+            sample.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     def cal_item_vector(self):
@@ -211,5 +214,5 @@ class UserBehavior(object):
         return data
 
 if __name__ == '__main__':
-    ub = UserBehavior(small=True)
-    ub.main()
+    ub = UserBehavior(small=False)
+    ub.main(merge=False)
