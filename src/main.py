@@ -24,7 +24,7 @@ class UserBehavior(object):
         self.train = self.load_train()
 
         """
-        所有用户数量：987791
+        所有用户数量：987791load_train
         income最大值: 23469
         stage一共10个阶段
         career一共10种，序号1-10，float型
