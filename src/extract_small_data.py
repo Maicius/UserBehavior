@@ -1,10 +1,16 @@
 import pandas as pd
 import json
 
+
+
 def get_small_data(type, num=1000):
     pre = "../raw_data/ECommAI_ubp_round1_"
     small_file = '../mid_data/' + type + ".csv"
     small_data = []
+
+    # 如果num为-1，则取全部
+    if num == -1:
+        num = 1000000000000
     with open(pre + type, 'r', encoding='utf-8') as r:
         for index, line in enumerate(r):
             if index > num:
@@ -42,7 +48,8 @@ def extract_item_cat_1_dict():
 
 
 if __name__ =='__main__':
-    extract_item_cat_1_dict()
-    # get_small_data("train", num=10000)
-    # get_small_data("item_feature", num=10000)
-    # get_small_data("user_feature", num=10000)
+    # extract_item_cat_1_dict()
+    # 提取小数据集，num=-1表示取全部
+    get_small_data("train", num=10000)
+    get_small_data("item_feature", num=1000000)
+    get_small_data("user_feature", num=500000)

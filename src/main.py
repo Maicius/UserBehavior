@@ -39,15 +39,20 @@ class UserBehavior(object):
         cate_id = 8381
         cate_1_id = 111
         price的极值不具参考价值
-        self.item_feature = self.load_item_feature()
         """
         self.item_feature = self.load_item_feature()
 
-    def main(self):
+    def main(self, merge=False):
         self.cal_user_item_score()
         self.cal_user_vector()
         self.cal_item_vector()
-        return self.user_feature['vector'], self.item_feature['vector'], self.user_item_score
+        if merge:
+            self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
+            self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
+            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
+            self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
+            self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
+        return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
@@ -62,10 +67,10 @@ class UserBehavior(object):
         self.item_feature['brand_id'] = self.item_feature['brand_id'].apply(lambda x: self.brand_id_to_vector(x))
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_vector(x))
 
-        self.item_feature['vector'] = self.item_feature['cate_1_id'] + self.item_feature['cate_id'] + self.item_feature[
+        self.item_feature['item_vector'] = self.item_feature['cate_1_id'] + self.item_feature['cate_id'] + self.item_feature[
             'brand_id'] + self.item_feature['price']
         self.item_feature.drop(['cate_1_id', 'cate_id', 'brand_id', 'price'], axis=1, inplace=True)
-        self.item_feature['vector'] = self.item_feature['vector'].apply(lambda x: self.str_vector_2_embedding(x))
+        self.item_feature['item_vector'] = self.item_feature['item_vector'].apply(lambda x: self.str_vector_2_embedding(x))
 
     @staticmethod
     def str_vector_2_embedding(str_vector):
@@ -92,11 +97,11 @@ class UserBehavior(object):
         # 将阶段转为10维向量
         self.user_feature['stage'] = self.user_feature['stage'].apply(lambda x: self.stage_to_vector(x))
         # 拼接向量，组成一个40纬的用户向量
-        self.user_feature['vector'] = self.user_feature['gender'] + self.user_feature['age'] + self.user_feature[
+        self.user_feature['user_vector'] = self.user_feature['gender'] + self.user_feature['age'] + self.user_feature[
             'career'] + self.user_feature['income'] + self.user_feature['stage']
         # 扔掉转化过的特征，节省内存
         self.user_feature.drop(['gender', 'age', 'career', 'income', 'stage'], inplace=True, axis=1)
-        self.user_feature['vector'] = self.user_feature['vector'].apply(lambda x: self.str_vector_2_embedding(x))
+        self.user_feature['user_vector'] = self.user_feature['user_vector'].apply(lambda x: self.str_vector_2_embedding(x))
 
     @staticmethod
     def age_to_vector(age):
