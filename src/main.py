@@ -21,6 +21,8 @@ class UserBehavior(object):
 
     def __init__(self, small=True):
         self.small = small
+
+    def main(self, merge=False):
         self.train = self.load_train()
 
         """
@@ -41,9 +43,7 @@ class UserBehavior(object):
         price的极值不具参考价值
         """
         self.item_feature = self.load_item_feature()
-
-    def main(self, merge=False):
-        # self.cal_user_item_score()
+        self.cal_user_item_score()
         self.cal_user_vector()
         self.cal_item_vector()
         self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
@@ -56,6 +56,13 @@ class UserBehavior(object):
             sample = self.user_item_score.sample(frac=0.1)
             sample.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
+
+    def load_train_vector(self):
+        item_vector = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')['item_vector']
+        user_vector = pd.read_csv(self.mid_pre + 'user_feature0.01.csv')['user_vector']
+        item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
+        user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
+        return user_vector, item_vector
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
