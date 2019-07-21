@@ -122,7 +122,7 @@ class recommender_network(object):
                 '\nTrain time for epoch #{} ({} total steps): {}'.format(epoch_i + 1, self.optimizer.iterations.numpy(),
                                                                          train_end - train_start))
             #             with self.test_summary_writer.as_default():
-            self.testing((test_X, test_y), self.optimizer.iterations)
+            # self.testing((test_X, test_y), self.optimizer.iterations)
             # self.checkpoint.save(self.checkpoint_prefix)
         self.export_path = os.path.join(self.MODEL_DIR, 'export')
         tf.saved_model.save(self.model, self.export_path)
@@ -133,4 +133,6 @@ class recommender_network(object):
 
         return user_feature, item_feature
 
+if __name__ == '__main__':
 
+    pass
