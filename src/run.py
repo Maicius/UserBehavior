@@ -8,8 +8,10 @@
 """
 __author__ = 'Xiaosong Zhou'
 import tensorflow as tf
+import numpy as np
 from src.model_1 import RecommenderNetworkConfig, RecommenderNetwork
 from sklearn.model_selection import train_test_split
+from src.main import UserBehavior
 import time
 import os
 
@@ -79,9 +81,12 @@ def training(self, features, targets_values, epochs=5, log_freq=50):
 
 if __name__ == '__main__':
     config = RecommenderNetworkConfig()
+    ub = UserBehavior()
     best_loss = 9999999
     losses = {'train': [], 'test': []}
     network = RecommenderNetwork(config)
+    # 获得特征
+    user_embedding, item_feature_embedding, user_item_score = ub.load_train_vector()
 
 
 

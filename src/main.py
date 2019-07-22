@@ -57,12 +57,21 @@ class UserBehavior(object):
             sample.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
+    # def load_train_vector(self):
+    #     item_vector = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')['item_vector']
+    #     user_vector = pd.read_csv(self.mid_pre + 'user_feature0.01.csv')['user_vector']
+    #     item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
+    #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
+    #     return user_vector, item_vector
     def load_train_vector(self):
-        item_vector = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')['item_vector']
-        user_vector = pd.read_csv(self.mid_pre + 'user_feature0.01.csv')['user_vector']
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')
+        user_vector = user_item_score_vector_pd['user_vector']
+        item_vector = user_item_score_vector_pd['item_vector']
+        score = user_item_score_vector_pd['behavior_type']
         item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
         user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
-        return user_vector, item_vector
+        score_vectore = list(map(lambda x: list(map(int, x[1:-1].split(','))), score))
+        return user_vector, item_vector, score_vectore
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
@@ -146,7 +155,7 @@ class UserBehavior(object):
 
     def price_to_vector(self, price):
         # 超过4000元的商品在总商品中占比约2.5%
-        price = 1024 if price > 1024 else int(price)
+        price = 1023 if price > 1023 else int(price)
         price = bin(price)[2:]
         # 商品价格补齐为10纬
         return complete_binary(price, 10)
@@ -171,7 +180,7 @@ class UserBehavior(object):
     def cat_to_vector(self, cat):
         cat = self.cate_dict[str(cat)]
         cat = bin(cat)[2:]
-        return complete_binary(cat, 10)
+        return complete_binary(cat, 14)
 
     def load_train(self):
         file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"

@@ -11,16 +11,16 @@ __author__ = 'Xiaosong Zhou'
 
 import tensorflow as tf
 import datetime
-import tensorflow as tf
 import os
 import numpy as np
 from src.main import UserBehavior
+from tensorflow import keras
+from tensorflow.python.ops import summary_ops_v2
 
 
 class RecommenderNetworkConfig(object):
     batch_size = 256
     model_dir = '../model'
-    ub = UserBehavior()
     lr = 0.001
 
 
@@ -28,10 +28,9 @@ class RecommenderNetwork(object):
     def __init__(self, config):
         self.config = config
         self.user_feature = tf.keras.layers.Input((40,), dtype='int32', name='user_feature')
-        self.item_feature = tf.keras.layers.Input((40,), dtype='int32', name='item_feature')
+        self.item_feature = tf.keras.layers.Input((44,), dtype='int32', name='item_feature')
 
-        # 获得特征
-        self.user_embedding, self.item_feature_embedding, self.user_item_score = self.config.ub.main()
+
         inference = tf.keras.layers.Lambda(lambda layer: tf.reduce_sum(layer[0] * layer[1], axis=1), name="inference")(
             (self.user_embedding, self.item_feature_embedding))
         inference = tf.keras.layers.Lambda(lambda layer: tf.expand_dims(layer, axis=1))(inference)
@@ -63,7 +62,6 @@ class RecommenderNetwork(object):
     def compute_metrics(self, labels, logits):
         return tf.keras.metrics.mae(labels, logits)
 
-    @tf.function
     def train_step(self, x, y):
         # Record the operations used to compute the loss, so that the gradient
         # of the loss with respect to the variables can be computed.
