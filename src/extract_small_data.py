@@ -64,8 +64,8 @@ if __name__ =='__main__':
     pass
     # extract_item_cat_1_dict()
     # 提取小数据集，num=-1表示取全部
-    # get_small_data("train", num=10000)
-    # get_small_data("item_feature", num=10000)
-    # get_small_data("user_feature", num=10000)
+    get_small_data("train", num=10000)
+    get_small_data("item_feature", num=10000)
+    get_small_data("user_feature", num=10000)
     # 对整个数据集进行随机采样
-    get_small_sample(0.01)
+    # get_small_sample(0.01)
