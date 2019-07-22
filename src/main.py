@@ -64,13 +64,13 @@ class UserBehavior(object):
     #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
     #     return user_vector, item_vector
     def load_train_vector(self):
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv')
         user_vector = user_item_score_vector_pd['user_vector']
         item_vector = user_item_score_vector_pd['item_vector']
         score = user_item_score_vector_pd['behavior_type']
         item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
         user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
-        score_vectore = list(map(lambda x: list(map(int, x[1:-1].split(','))), score))
+        score_vectore = list(map(lambda x: int(x), score))
         return user_vector, item_vector, score_vectore
 
     def cal_item_vector(self):
