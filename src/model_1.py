@@ -31,10 +31,7 @@ class RecommenderNetwork(object):
     def __init__(self, config):
         self.config = config
         self.user_feature = tf.keras.layers.Input((40,), dtype='float32', name='user_feature')
-        # self.user_feature = tf.placeholder(tf.int32, [None, 40], name='user_feature')
         self.item_feature = tf.keras.layers.Input((44,), dtype='float32', name='item_feature')
-        # self.item_feature = tf.placeholder(tf.int32, [None, 44], name='item_feature')
-        # self.y = tf.placeholder(tf.float32, [None, 1], name='targets')
 
         # 我这里开个全连接层，可训练
         self.user_fc = tf.keras.layers.Dense(self.config.embed_dim, name='user_fc', activation='relu')(self.user_feature)
@@ -47,8 +44,8 @@ class RecommenderNetwork(object):
         self.model.summary()
         self.optimizer = tf.keras.optimizers.Adam(self.config.lr)
         # MSE损失，将计算值回归到评分
-        # self.ComputeLoss = tf.keras.losses.MeanSquaredError()
-        # self.ComputeMetrics = tf.keras.metrics.MeanAbsoluteError()
+        self.ComputeLoss = tf.keras.losses.MeanSquaredError()
+        self.ComputeMetrics = tf.keras.metrics.MeanAbsoluteError()
 
 
     def compute_loss(self, labels, logits):
@@ -57,6 +54,7 @@ class RecommenderNetwork(object):
     def compute_metrics(self, labels, logits):
         return tf.keras.metrics.mae(labels, logits)
 
+    @tf.function
     def train_step(self, x, y):
         # Record the operations used to compute the loss, so that the gradient
         # of the loss with respect to the variables can be computed.
@@ -64,10 +62,10 @@ class RecommenderNetwork(object):
         with tf.GradientTape() as tape:
             logits = self.model([x[0],
                                  x[1]], training=True)
-            # loss = self.ComputeLoss(y, logits)
-            loss = self.compute_loss(y, logits)
-            # self.ComputeMetrics(y, logits)
-            metrics = self.compute_metrics(y, logits)
+            loss = self.ComputeLoss(y, logits)
+            # loss = self.compute_loss(y, logits)
+            self.ComputeMetrics(y, logits)
+            # metrics = self.compute_metrics(y, logits)
         grads = tape.gradient(loss, self.model.trainable_variables)
         self.optimizer.apply_gradients(zip(grads, self.model.trainable_variables))
         return loss, logits
