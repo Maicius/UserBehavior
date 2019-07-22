@@ -1,12 +1,11 @@
 from src.main import UserBehavior
 import tensorflow as tf
 import datetime
-import keras
 import time
 import os
 import numpy as np
 from sklearn.model_selection import train_test_split
-
+import pandas as pd
 
 class recommender_network(object):
     MODEL_DIR = '../model'
@@ -18,17 +17,19 @@ class recommender_network(object):
         self.ub = UserBehavior()
         user_feature, item_feature = self.get_inputs()
         # 获得特征
-        self.user_embedding, self.item_feature_embedding, self.user_item_score = self.ub.main()
-        inference = keras.layers.Lambda(lambda layer: tf.reduce_sum(layer[0] * layer[1], axis=1), name="inference")(
+        self.user_embedding, self.item_feature_embedding = self.ub.load_train_vector()
+        self.user_embedding = tf.keras.layers.Reshape([40], name='user_embedding')(self.user_embedding)
+        self.item_feature_embedding = tf.keras.layers.Reshape([43], name="item_feature_embedding")(self.item_feature_embedding)
+        inference = tf.keras.layers.Lambda(lambda layer: tf.reduce_sum(layer[0] * layer[1], axis=1), name="inference")(
             (self.user_embedding, self.item_feature_embedding))
-        inference = keras.layers.Lambda(lambda layer: tf.expand_dims(layer, axis=1))(inference)
+        inference = tf.keras.layers.Lambda(lambda layer: tf.expand_dims(layer, axis=1))(inference)
 
-        self.model = keras.Model(inputs=[user_feature, item_feature], outputs=[inference])
+        self.model = tf.keras.Model(inputs=[user_feature, item_feature], outputs=[inference])
         self.model.summary()
-        self.optimizer = keras.optimizers.Adam(lr=0.001)
+        self.optimizer = tf.keras.optimizers.Adam(lr=0.001)
         # MSE损失，将计算值回归到评分
-        self.ComputeLoss = keras.losses.MeanSquaredError()
-        self.ComputeMetrics = keras.metrics.MeanAbsoluteError()
+        self.ComputeLoss = tf.keras.losses.MeanSquaredError()
+        self.ComputeMetrics = tf.keras.metrics.MeanAbsoluteError()
         if tf.io.gfile.exists(self.MODEL_DIR):
             #             print('Removing existing model dir: {}'.format(MODEL_DIR))
             #             tf.io.gfile.rmtree(MODEL_DIR)
@@ -43,12 +44,13 @@ class recommender_network(object):
         self.checkpoint = tf.train.Checkpoint(model=self.model, optimizer=self.optimizer)
         # Restore variables on creation if a checkpoint exists.
         self.checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
+        print("finish init")
 
     def compute_loss(self, labels, logits):
-        return tf.reduce_mean(keras.losses.mse(labels, logits))
+        return tf.reduce_mean(tf.keras.losses.mse(labels, logits))
 
     def compute_metrics(self, labels, logits):
-        return keras.metrics.mae(labels, logits)
+        return tf.keras.metrics.mae(labels, logits)
 
     @tf.function
     def train_step(self, x, y):
@@ -73,7 +75,7 @@ class recommender_network(object):
             yield Xs[start:end], ys[start:end]
 
     def training(self, features, targets_values, epochs=5, log_freq=50):
-
+        print("begin to train....")
         for epoch_i in range(epochs):
             # 将数据集分成训练集和测试集，随机种子不固定
             train_X, test_X, train_y, test_y = train_test_split(features,
@@ -90,7 +92,7 @@ class recommender_network(object):
                 start = time.time()
                 # Metrics are stateful. They accumulate values and return a cumulative
                 # result when you call .result(). Clear accumulated values with .reset_states()
-                avg_loss = keras.metrics.Mean('loss', dtype=tf.float32)
+                avg_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
                 #                 avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
 
                 # Datasets can be iterated over like any other Python iterable.
@@ -128,11 +130,17 @@ class recommender_network(object):
         tf.saved_model.save(self.model, self.export_path)
 
     def get_inputs(self):
-        user_feature = keras.layers.Input((40,), dtype='int32', name='user_feature')
-        item_feature = keras.layers.Input((40,), dtype='int32', name='item_feature')
+        user_feature = tf.keras.layers.Input((40,), dtype='int32', name='user_feature')
+        item_feature = tf.keras.layers.Input((40,), dtype='int32', name='item_feature')
 
         return user_feature, item_feature
 
 if __name__ == '__main__':
-
-    pass
+    data = pd.read_csv("../mid_data/user_item_score_vector_small0.01.csv")
+    user_vector = data['user_vector']
+    item_vector = data['item_vector']
+    item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
+    user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
+    label = data['behavior_type']
+    model = recommender_network()
+    model.training([user_vector, item_vector], label)
