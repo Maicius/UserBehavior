@@ -55,7 +55,7 @@ def training(features, targets_values, epochs=5, log_freq=50):
             # Metrics are stateful. They accumulate values and return a cumulative
             # result when you call .result(). Clear accumulated values with .reset_states()
             avg_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
-            avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
+            # avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
 
             # Datasets can be iterated over like any other Python iterable.
             for batch_i in range(batch_num):
@@ -76,12 +76,12 @@ def training(features, targets_values, epochs=5, log_freq=50):
                         epoch_i,
                         batch_i,
                         batch_num,
-                        loss, (avg_mae.result()), rate))
+                        loss, (network.ComputeMetrics.result()), rate))
                     # print('Step #{}\tLoss: {:0.6f} mae: {:0.6f} ({} steps/sec)'.format(
                     #     network.optimizer.iterations.numpy(), loss, (avg_mae.result()), rate))
                     avg_loss.reset_states()
-                    # network.ComputeMetrics.reset_states()
-                    avg_mae.reset_states()
+                    network.ComputeMetrics.reset_states()
+                    # avg_mae.reset_states()
                     start = time.time()
 
         train_end = time.time()
@@ -101,7 +101,7 @@ def testing(test_dataset, step_num):
     test_batches = get_batches(test_X, test_y, config.batch_size)
     """Perform an evaluation of `model` on the examples from `dataset`."""
     avg_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
-    avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
+    # avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
 
     batch_num = (len(test_X) // config.batch_size)
     for batch_i in range(batch_num):
@@ -113,11 +113,11 @@ def testing(test_dataset, step_num):
                                            np.reshape(x_item, [config.batch_size, config.item_dim]).astype('float32')],
                                           np.reshape(y, [config.batch_size, 1]).astype('int32'))
 
-        test_loss = network.compute_loss(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
+        test_loss = network.ComputeLoss(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
         avg_loss(test_loss)
         # 保存测试损失
         losses['test'].append(test_loss)
-        network.compute_metrics(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
+        network.ComputeMetrics(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
         # avg_loss(self.compute_loss(labels, logits))
         # avg_mae(self.compute_metrics(labels, logits))
 
@@ -132,6 +132,12 @@ def testing(test_dataset, step_num):
         print("best loss = {}".format(best_loss))
         network.checkpoint.save(checkpoint_prefix)
 
+
+def forward(self, xs):
+    predictions = self.model(xs)
+    # logits = tf.nn.softmax(predictions)
+
+    return predictions
 
 if __name__ == '__main__':
     config = RecommenderNetworkConfig()
