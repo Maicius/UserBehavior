@@ -44,18 +44,22 @@ class UserBehavior(object):
         price的极值不具参考价值
         """
         self.item_feature = self.load_item_feature()
+        print(1)
         self.cal_user_item_score()
+        print(2)
         self.cal_user_vector()
+        print(3)
         self.cal_item_vector()
-        self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
-        self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
+        # self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
+        # self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
         if merge:
+            print("begin to merge...")
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
             self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
-
-            sample = self.user_item_score.sample(frac=0.1)
-            sample.to_csv(self.mid_pre + 'user_item_score_vector.csv')
+            print("finish merge...")
+            # sample = self.user_item_score.sample(frac=0.1)
+            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     def load_train_vector(self):
@@ -109,6 +113,7 @@ class UserBehavior(object):
         score_min = user_item_df['behavior_type'].min()
         score_diff = score_max - score_min
         user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
+        user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
         self.user_item_score = user_item_df
 
     @staticmethod
@@ -174,7 +179,7 @@ class UserBehavior(object):
 
     def price_to_vector(self, price):
         # 超过4000元的商品在总商品中占比约2.5%
-        price = 1024 if price > 1024 else int(price)
+        price = 1023 if price > 1023 else int(price)
         price = bin(price)[2:]
         # 商品价格补齐为10纬
         return complete_binary(price, 10)
@@ -199,11 +204,11 @@ class UserBehavior(object):
     def cat_to_vector(self, cat):
         cat = self.cate_dict[str(cat)]
         cat = bin(cat)[2:]
-        return complete_binary(cat, 10)
+        return complete_binary(cat, 14)
 
     def load_train(self):
         file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"
-        data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
+        data = pd.read_csv(file_name, sep=',', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data
 
@@ -251,4 +256,4 @@ class UserBehavior(object):
 
 if __name__ == '__main__':
     ub = UserBehavior(small=True)
-    ub.main(merge=False)
+    ub.main(merge=True)
