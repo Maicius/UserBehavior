@@ -88,5 +88,5 @@ class DataProcess(UserBehavior):
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
 
 if __name__ =='__main__':
-    dp = DataProcess()
+    dp = DataProcess(small=False)
     dp.process()
