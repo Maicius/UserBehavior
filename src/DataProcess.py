@@ -4,8 +4,8 @@ import pandas as pd
 
 class DataProcess(UserBehavior):
 
-    def __init__(self):
-        UserBehavior.__init__(self, small=True)
+    def __init__(self, small=True):
+        UserBehavior.__init__(self, small=small)
 
     def process(self, merge=True):
         self.train = self.load_train()
@@ -49,7 +49,7 @@ class DataProcess(UserBehavior):
 
     def price_to_embedding(self, price, price_upper):
         price = price_upper if price > price_upper else int(price)
-        return price
+        return price // 100
 
     def brand_id_to_vector(self, brand):
         """

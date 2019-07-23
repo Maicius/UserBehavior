@@ -56,10 +56,7 @@ class UserBehavior(object):
             print("begin to merge...")
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
-            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
-            print("finish merge...")
-            # sample = self.user_item_score.sample(frac=0.1)
-            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
+            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector_all.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     # def load_train_vector(self):
@@ -264,5 +261,5 @@ class UserBehavior(object):
         return data
 
 if __name__ == '__main__':
-    ub = UserBehavior(small=True)
+    ub = UserBehavior(small=False)
     ub.main(merge=True)
