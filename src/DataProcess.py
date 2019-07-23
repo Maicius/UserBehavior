@@ -1,7 +1,7 @@
 from src.main import UserBehavior
 import json
 import pandas as pd
-
+import datetime
 class DataProcess(UserBehavior):
 
     def __init__(self, small=True):
@@ -11,16 +11,24 @@ class DataProcess(UserBehavior):
 
 
     def process(self, merge=True):
+        print("begin...", datetime.datetime.now())
         self.train = self.load_train()
+        print("cal user item score...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.cal_user_item_score()
+        print("cal user vector...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.cal_user_vector()
+        print("cal item vector", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.cal_item_vector()
         if merge:
+            print("merge 1...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
+            print("merge 2...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
+            print("save file...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
         self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
         self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random.csv")
+        print("finish all", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def calculate_user_map(self, type, save=True):
         age_list = list(set(self.user_feature[type]))
@@ -88,5 +96,5 @@ class DataProcess(UserBehavior):
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
 
 if __name__ =='__main__':
-    dp = DataProcess(small=False)
+    dp = DataProcess(small=True)
     dp.process()
