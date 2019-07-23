@@ -63,9 +63,11 @@ def training(features, targets_values, epochs=5, log_freq=50):
                 x_user, x_item = zip(*x)
                 x_user = np.mat(list(x_user))
                 x_item = np.mat(list(x_item))
-                loss, logits = network.train_step([np.reshape(x_user, [config.batch_size, config.user_dim]).astype('float32'),
-                                                   np.reshape(x_item, [config.batch_size, config.item_dim]).astype('float32')],
-                                                   np.reshape(y, [config.batch_size, 1]).astype('float32'))
+                input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
+                input_x_item = np.reshape(np.array(x_item), [config.batch_size, config.item_dim])
+                input_y = np.reshape(np.array(y), [config.batch_size, 1])
+                input_x = [input_x_user.astype('float32'), input_x_item.astype('float32')]
+                loss, logits = network.train_step(input_x, input_y.astype('float32'))
 
                 avg_loss(loss)
                 losses['train'].append(loss)
@@ -93,6 +95,8 @@ def training(features, targets_values, epochs=5, log_freq=50):
 
         # self.checkpoint.save(self.checkpoint_prefix)
     export_path = os.path.join(config.MODEL_DIR, 'export')
+    if not os.path.exists(export_path):
+        os.makedirs(export_path)
     tf.saved_model.save(network.model, export_path)
 
 
@@ -109,17 +113,16 @@ def testing(test_dataset, step_num):
         x_user, x_item = zip(*x)
         x_user = np.mat(list(x_user))
         x_item = np.mat(list(x_item))
-        logits = network.model([np.reshape(x_user, [config.batch_size, config.user_dim]).astype('float32'),
-                                           np.reshape(x_item, [config.batch_size, config.item_dim]).astype('float32')],
-                                          np.reshape(y, [config.batch_size, 1]).astype('int32'))
-
-        test_loss = network.ComputeLoss(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
+        input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
+        input_x_item = np.reshape(np.array(x_item), [config.batch_size, config.item_dim])
+        input_y = np.reshape(np.array(y), [config.batch_size, 1])
+        input_x = [input_x_user.astype('float32'), input_x_item.astype('float32')]
+        logits = network.model(input_x, input_y.astype('float32'))
+        test_loss = network.ComputeLoss(input_y.astype('float32'), logits)
         avg_loss(test_loss)
         # 保存测试损失
         losses['test'].append(test_loss)
-        network.ComputeMetrics(np.reshape(y, [config.batch_size, 1]).astype(np.float32), logits)
-        # avg_loss(self.compute_loss(labels, logits))
-        # avg_mae(self.compute_metrics(labels, logits))
+        network.ComputeMetrics(input_y.astype('float32'), logits)
 
     print('Model test set loss: {:0.6f} mae: {:0.6f}'.format(avg_loss.result(), network.ComputeMetrics.result()))
     # print('Model test set loss: {:0.6f} mae: {:0.6f}'.format(avg_loss.result(), avg_mae.result()))
@@ -130,7 +133,7 @@ def testing(test_dataset, step_num):
     if avg_loss.result() < best_loss:
         best_loss = avg_loss.result()
         print("best loss = {}".format(best_loss))
-        network.checkpoint.save(checkpoint_prefix)
+        network.checkpoint.save(config.checkpoint_prefix)
 
 
 def forward(self, xs):
@@ -159,10 +162,6 @@ if __name__ == '__main__':
     else:
         tf.io.gfile.makedirs(config.MODEL_DIR)
 
-    train_dir = os.path.join(config.MODEL_DIR, 'summaries', 'train')
-    test_dir = os.path.join(config.MODEL_DIR, 'summaries', 'eval')
-    checkpoint_dir = os.path.join(config.MODEL_DIR, 'checkpoints')
-    checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
     # checkpoint = tf.train.Checkpoint(model=network.model, optimizer=network.optimizer)
     # Restore variables on creation if a checkpoint exists.
     # network.checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
