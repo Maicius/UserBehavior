@@ -76,7 +76,7 @@ class UserBehavior(object):
     #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
     #     return user_vector, item_vector
     def load_train_vector(self):
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small.csv')
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv')
         user_vector = user_item_score_vector_pd['user_vector']
         item_vector = user_item_score_vector_pd['item_vector']
         score = user_item_score_vector_pd['behavior_type']
@@ -84,6 +84,33 @@ class UserBehavior(object):
         user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
         score_vectore = list(map(lambda x: float(x), score))
         return user_vector, item_vector, score_vectore
+
+    def chunk_load_train_vector(self, chunkSize=100000):
+        # 添加分段读取逻辑，几十个G的扛不住
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv', iterator=True)
+        chunks = []
+        while True:
+            try:
+                chunk = user_item_score_vector_pd.get_chunk(chunkSize)
+            except StopIteration:
+                break
+            chunks.append(chunk)
+        user_vector_chunks = []
+        item_vector_chunks = []
+        score_chunks = []
+        for i in chunks:
+            user_vector = i['user_vector']
+            user_vector_chunks.append(user_vector)
+            user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
+            user_vector_chunks.extend(user_vector)
+            item_vector = i['item_vector']
+            item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
+            item_vector_chunks.extend(item_vector)
+            score = i['behavior_type']
+            score_vectore = list(map(lambda x: float(x), score))
+            score_chunks.extend(score_vectore)
+
+        return user_vector_chunks, item_vector_chunks, score_chunks
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
