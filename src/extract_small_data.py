@@ -87,9 +87,9 @@ if __name__ =='__main__':
     # get_small_sample(0.01)
     # get_small_raw_train_sample(0.01)
     # extract_small_feature()
-    get_small_data("train", num=10000)
-    get_small_data("item_feature", num=10000)
-    get_small_data("user_feature", num=10000)
+    get_small_data("train", num=100000)
+    get_small_data("item_feature", num=100000)
+    get_small_data("user_feature", num=100000)
     # 对整个数据集进行随机采样
     # get_small_sample(0.01)
 

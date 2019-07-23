@@ -64,7 +64,9 @@ class UserBehavior(object):
             print("begin to merge...")
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
-            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector_all.csv')
+            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector_Fix.csv')
+        self.user_feature.to_csv(self.mid_pre + "user_feature_fix.csv")
+        self.item_feature.to_csv(self.mid_pre + "item_feature_fix.csv")
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     # def load_train_vector(self):
@@ -74,7 +76,7 @@ class UserBehavior(object):
     #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
     #     return user_vector, item_vector
     def load_train_vector(self):
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv')
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small.csv')
         user_vector = user_item_score_vector_pd['user_vector']
         item_vector = user_item_score_vector_pd['item_vector']
         score = user_item_score_vector_pd['behavior_type']
@@ -224,7 +226,7 @@ class UserBehavior(object):
 
     def load_train(self):
         file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"
-        data = pd.read_csv(file_name, sep=',', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
+        data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data
 
