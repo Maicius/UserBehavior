@@ -118,20 +118,20 @@ class UserBehavior(object):
         self.train['behavior_type'] = self.train['behavior_type'] * self.train['date']
         print("finish time")
         user_item_df = self.train.groupby(by=['user_id', 'item_id'])['behavior_type'].sum().reset_index()
-        user_item_df['hot'] = 1
-        # 计算每个商品的用户数量
-        self.item_user_num = pd.DataFrame(user_item_df.groupby(by=['item_id'])['hot'].sum())
-        # 计算热门惩罚
-        user_item_df['hot_punish'] = user_item_df['item_id'].apply(lambda x:self.cal_hot_punish(x))
-        user_item_df['behavior_type'] = user_item_df['behavior_type'] * user_item_df['hot_punish']
-        print("热门惩罚")
+        # user_item_df['hot'] = 1
+        # # 计算每个商品的用户数量
+        # self.item_user_num = pd.DataFrame(user_item_df.groupby(by=['item_id'])['hot'].sum())
+        # # 计算热门惩罚
+        # user_item_df['hot_punish'] = user_item_df['item_id'].apply(lambda x:self.cal_hot_punish(x))
+        # user_item_df['behavior_type'] = user_item_df['behavior_type'] * user_item_df['hot_punish']
+        # print("热门惩罚")
+        # user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
         # 归一化
         score_max = user_item_df['behavior_type'].max()
         score_min = user_item_df['behavior_type'].min()
         score_diff = score_max - score_min
         user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
         print("归一化")
-        user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
         self.user_item_score = user_item_df
 
     @staticmethod

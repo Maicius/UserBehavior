@@ -3,12 +3,10 @@ import json
 import pandas as pd
 import datetime
 class DataProcess(UserBehavior):
-
     def __init__(self, small=True):
         UserBehavior.__init__(self, small=small)
         self.pre = "../raw_data/ECommAI_ubp_round1_"
         self.mid_pre_random = "../mid_data_random/"
-
 
     def process(self, merge=True):
         print("begin...", datetime.datetime.now())
