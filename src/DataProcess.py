@@ -6,6 +6,9 @@ class DataProcess(UserBehavior):
 
     def __init__(self, small=True):
         UserBehavior.__init__(self, small=small)
+        self.pre = "../raw_data/ECommAI_ubp_round1_"
+        self.mid_pre_random = "../mid_data_random/"
+
 
     def process(self, merge=True):
         self.train = self.load_train()
@@ -15,9 +18,9 @@ class DataProcess(UserBehavior):
         if merge:
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
-            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector0.01.csv')
-        self.user_feature.to_csv(self.mid_pre + "user_feature_vector.csv")
-        self.item_feature.to_csv(self.mid_pre + "item_feature_vector.csv")
+            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
+        self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
+        self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random.csv")
 
     def calculate_user_map(self, type, save=True):
         age_list = list(set(self.user_feature[type]))
