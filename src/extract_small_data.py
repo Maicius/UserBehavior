@@ -59,13 +59,38 @@ def get_small_sample(frac):
     user_feature.to_csv("../mid_data/user_feature" + str(frac) + ".csv")
     data.to_csv("../mid_data/user_item_score_vector_small"  + str(frac) + ".csv")
 
+def get_small_raw_train_sample(frac):
+    pre = "../raw_data/ECommAI_ubp_round1_"
+    data = pd.read_csv(pre + "train", sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
+    data = data.sample(frac=frac)
+    data.to_csv("../mid_data/train" + str(frac), index=False, header=None)
+
+def get_small_train_sample(frac):
+    pre = "../raw_data/ECommAI_ubp_round1_"
+    data = pd.read_csv(pre + "train", sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
+    data = data.sample(frac=frac)
+    data.to_csv("../mid_data/train" + str(frac), index=False, header=None)
+
+def extract_small_feature():
+    frac= 0.01
+    data = pd.read_csv("../mid_data/user_item_score_vector0.01.csv", sep=',')
+    item_feature = data.loc[:, ['item_id', 'item_vector']]
+    user_feature = data.loc[:, ['user_id', 'user_vector']]
+    item_feature.drop_duplicates(inplace=True)
+    user_feature.drop_duplicates(inplace=True)
+    item_feature.to_csv("../mid_data/item_feature" + str(frac) + ".csv")
+    user_feature.to_csv("../mid_data/user_feature" + str(frac) + ".csv")
 
 if __name__ =='__main__':
     pass
     # extract_item_cat_1_dict()
     # 提取小数据集，num=-1表示取全部
+    # get_small_sample(0.01)
+    # get_small_raw_train_sample(0.01)
+    extract_small_feature()
     get_small_data("train", num=10000)
     get_small_data("item_feature", num=10000)
     get_small_data("user_feature", num=10000)
     # 对整个数据集进行随机采样
     # get_small_sample(0.01)
+
