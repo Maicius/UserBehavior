@@ -2,6 +2,7 @@ import pandas as pd
 import re
 from src.util import extract_age_pattern, complete_binary
 import json
+import numpy as np
 
 class UserBehavior(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -43,18 +44,22 @@ class UserBehavior(object):
         price的极值不具参考价值
         """
         self.item_feature = self.load_item_feature()
+        print(1)
         self.cal_user_item_score()
+        print(2)
         self.cal_user_vector()
+        print(3)
         self.cal_item_vector()
-        self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
-        self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
+        # self.user_feature.to_csv(self.mid_pre + 'user_feature_vector.csv')
+        # self.item_feature.to_csv(self.mid_pre + 'item_feature_vector.csv')
         if merge:
+            print("begin to merge...")
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
             self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
-
-            sample = self.user_item_score.sample(frac=0.1)
-            sample.to_csv(self.mid_pre + 'user_item_score_vector.csv')
+            print("finish merge...")
+            # sample = self.user_item_score.sample(frac=0.1)
+            self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
     # def load_train_vector(self):
@@ -99,10 +104,38 @@ class UserBehavior(object):
 
     def cal_user_item_score(self):
         self.train['behavior_type'] = self.train['behavior_type'].map(self.behavior_score)
+        date_max = self.train['date'].max()
+        date_min = self.train['date'].min()
+        # 引入时间权重
+        self.train['date'] = self.train['date'].apply(lambda x: self.cal_date_score(x, date_min, date_max))
+        self.train['behavior_type'] = self.train['behavior_type'] * self.train['date']
+
         user_item_df = self.train.groupby(by=['user_id', 'item_id'])['behavior_type'].sum().reset_index()
-        # user_item_df.sort_values(by='behavior_type', ascending=False, inplace=True)
-        # user_item_df.to_csv(self.res_pre + 'user_item_score.csv')
+        user_item_df['hot'] = 1
+        # 计算每个商品的用户数量
+        self.item_user_num = pd.DataFrame(user_item_df.groupby(by=['item_id'])['hot'].sum())
+        # 计算热门惩罚
+        user_item_df['hot_punish'] = user_item_df['item_id'].apply(lambda x:self.cal_hot_punish(x))
+        user_item_df['behavior_type'] = user_item_df['behavior_type'] * user_item_df['hot_punish']
+        # 归一化
+        score_max = user_item_df['behavior_type'].max()
+        score_min = user_item_df['behavior_type'].min()
+        score_diff = score_max - score_min
+        user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
+        user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
         self.user_item_score = user_item_df
+
+    @staticmethod
+    def cal_date_score(date, date_min, date_max):
+        # date_max = 20190620
+        date_diff = (date - date_min) / (date_max - date_min)
+        f_dt = 1 / (1 + np.e ** (date_diff))
+        return f_dt
+
+    def cal_hot_punish(self, item_id):
+        user_num = self.item_user_num.loc[item_id]['hot']
+        w = 1 / (np.log2(1 + user_num))
+        return w
 
     def cal_user_vector(self):
         # 转化性别为4维向量,不转变为1纬向量是为了平衡权重
@@ -184,9 +217,10 @@ class UserBehavior(object):
 
     def load_train(self):
         file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"
-        data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
+        data = pd.read_csv(file_name, sep=',', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data
+
 
     def export_user_item(self):
         """
@@ -230,5 +264,5 @@ class UserBehavior(object):
         return data
 
 if __name__ == '__main__':
-    ub = UserBehavior(small=False)
-    ub.main(merge=False)
+    ub = UserBehavior(small=True)
+    ub.main(merge=True)
