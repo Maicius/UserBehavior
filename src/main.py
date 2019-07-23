@@ -27,7 +27,7 @@ class UserBehavior(object):
         self.train = self.load_train()
 
         """
-        所有用户数量：987791
+        所有用户数量：987791load_train
         income最大值: 23469
         stage一共10个阶段
         career一共10种，序号1-10，float型
@@ -62,12 +62,21 @@ class UserBehavior(object):
             self.user_item_score.to_csv(self.mid_pre + 'user_item_score_vector.csv')
         return self.user_feature['user_vector'], self.item_feature['item_vector'], self.user_item_score
 
+    # def load_train_vector(self):
+    #     item_vector = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')['item_vector']
+    #     user_vector = pd.read_csv(self.mid_pre + 'user_feature0.01.csv')['user_vector']
+    #     item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
+    #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
+    #     return user_vector, item_vector
     def load_train_vector(self):
-        item_vector = pd.read_csv(self.mid_pre + 'item_feature0.01.csv')['item_vector']
-        user_vector = pd.read_csv(self.mid_pre + 'user_feature0.01.csv')['user_vector']
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv')
+        user_vector = user_item_score_vector_pd['user_vector']
+        item_vector = user_item_score_vector_pd['item_vector']
+        score = user_item_score_vector_pd['behavior_type']
         item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
         user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
-        return user_vector, item_vector
+        score_vectore = list(map(lambda x: int(x), score))
+        return user_vector, item_vector, score_vectore
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
