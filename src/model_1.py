@@ -21,7 +21,11 @@ from tensorflow.python.ops import summary_ops_v2
 class RecommenderNetworkConfig(object):
     batch_size = 256
     MODEL_DIR = '../model'
-    lr = 0.001
+    checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints')
+    checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
+    train_dir = os.path.join(MODEL_DIR, 'summaries', 'train')
+    test_dir = os.path.join(MODEL_DIR, 'summaries', 'eval')
+    lr = 0.0001
     embed_dim = 40
     user_dim = 40
     item_dim = 44
@@ -46,6 +50,9 @@ class RecommenderNetwork(object):
         # MSE损失，将计算值回归到评分
         self.ComputeLoss = tf.keras.losses.MeanSquaredError()
         self.ComputeMetrics = tf.keras.metrics.MeanAbsoluteError()
+        self.checkpoint = tf.train.Checkpoint(model=self.model, optimizer=self.optimizer)
+        # Restore variables on creation if a checkpoint exists.
+        self.checkpoint.restore(tf.train.latest_checkpoint(config.checkpoint_dir))
 
 
     def compute_loss(self, labels, logits):
