@@ -24,13 +24,16 @@ class DataProcess(UserBehavior):
         self.cal_user_vector()
         print("cal item vector", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.cal_item_vector()
+        print("before merge shape:", self.user_item_score.shape)
         if merge:
             print("merge 1...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
+            print("first merge shape:", self.user_item_score.shape)
             print("merge 2...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
+            print("second merge shape:", self.user_item_score.shape)
             print("save file...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
+            # self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
             self.user_item_score.drop(["user_id", "item_id"],axis=1, inplace=True)
             self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random2.csv', index=False, header=None)
         self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
@@ -103,5 +106,5 @@ class DataProcess(UserBehavior):
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
 
 if __name__ =='__main__':
-    dp = DataProcess(small=False)
+    dp = DataProcess(small=True)
     dp.process()
