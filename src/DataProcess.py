@@ -24,6 +24,8 @@ class DataProcess(UserBehavior):
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
             print("save file...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
+            self.user_item_score.drop(["user_id", "item_id"],axis=1, inplace=True)
+            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random2.csv', index=False, header=None)
         self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
         self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random.csv")
         print("finish all", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
@@ -94,5 +96,5 @@ class DataProcess(UserBehavior):
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
 
 if __name__ =='__main__':
-    dp = DataProcess(small=True)
+    dp = DataProcess(small=False)
     dp.process()
