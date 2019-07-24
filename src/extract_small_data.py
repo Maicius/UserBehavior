@@ -2,7 +2,6 @@ import pandas as pd
 import json
 
 
-
 def get_small_data(type, num=1000):
     pre = "../raw_data/ECommAI_ubp_round1_"
     small_file = '../mid_data/' + type + ".csv"
@@ -19,6 +18,7 @@ def get_small_data(type, num=1000):
                 small_data.append(line)
     with open(small_file, 'w', encoding='utf-8') as w:
         w.writelines(small_data)
+
 
 def extract_item_cat_1_dict():
     file_name = "../raw_data/ECommAI_ubp_round1_" + "item_feature"
@@ -45,10 +45,11 @@ def extract_item_cat_1_dict():
     with open("../mid_data/brand_dict.json", 'w', encoding='utf-8') as w:
         json.dump(brand_dict, w)
 
+
 def get_small_sample(frac):
     data = pd.read_csv("../mid_data/user_item_score_vector.csv", sep=',')
     data = data.sample(frac=frac).reset_index()
-    data.drop('index', axis=1,inplace=True)
+    data.drop('index', axis=1, inplace=True)
     data.drop('Unnamed: 0', axis=1, inplace=True)
     print(data.shape)
     item_feature = data.loc[:, ['item_id', 'item_vector']]
@@ -57,13 +58,15 @@ def get_small_sample(frac):
     user_feature.drop_duplicates(inplace=True)
     item_feature.to_csv("../mid_data/item_feature" + str(frac) + ".csv")
     user_feature.to_csv("../mid_data/user_feature" + str(frac) + ".csv")
-    data.to_csv("../mid_data/user_item_score_vector_small"  + str(frac) + ".csv")
+    data.to_csv("../mid_data/user_item_score_vector_small" + str(frac) + ".csv")
+
 
 def get_small_raw_train_sample(frac):
     pre = "../raw_data/ECommAI_ubp_round1_"
     data = pd.read_csv(pre + "train", sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
     data = data.sample(frac=frac)
-    data.to_csv("../mid_data/train.csv" + str(frac),sep="\t", index=False, header=None)
+    data.to_csv("../mid_data/train.csv" + str(frac), sep="\t", index=False, header=None)
+
 
 def get_small_train_sample(frac):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -71,8 +74,9 @@ def get_small_train_sample(frac):
     data = data.sample(frac=frac)
     data.to_csv("../mid_data/train" + str(frac), index=False, header=None)
 
+
 def extract_small_feature():
-    frac= 0.01
+    frac = 0.01
     data = pd.read_csv("../mid_data/user_item_score_vector0.01.csv", sep=',')
     item_feature = data.loc[:, ['item_id', 'item_vector']]
     user_feature = data.loc[:, ['user_id', 'user_vector']]
@@ -81,11 +85,27 @@ def extract_small_feature():
     item_feature.to_csv("../mid_data/item_feature" + str(frac) + ".csv")
     user_feature.to_csv("../mid_data/user_feature" + str(frac) + ".csv")
 
-if __name__ =='__main__':
+
+def print_max():
+    data = pd.read_csv("../mid_data_random/user_item_score_vector_random2.csv", header=None,
+                       names=["behavior_type", "gender", "age", "career", "income", "stage", "cate_1_id", "cate_id",
+                              "brand_id", "price"])
+    min_price = data['price'].min()
+    max_price = data['price'].max()
+
+    min_income = data['income'].min()
+    max_income = data['income'].max()
+
+    print("price:", min_price, max_price)
+    print("income:", min_income, max_income)
+
+
+if __name__ == '__main__':
+    pass
     # extract_item_cat_1_dict()
 
     # 对原始数据集进行采样
-    get_small_raw_train_sample(0.01)
+    # get_small_raw_train_sample(0.01)
 
     # extract_small_feature()
     # 提取小数据集，num=-1表示取全部
@@ -94,4 +114,4 @@ if __name__ =='__main__':
     # get_small_data("user_feature", num=100000)
     # 对整个数据集进行随机采样
     # get_small_sample(0.01)
-
+    print(print_max())

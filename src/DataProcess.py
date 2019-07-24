@@ -65,6 +65,7 @@ class DataProcess(UserBehavior):
         age_map = self.calculate_user_map("age")
         career_map = self.calculate_user_map("career")
         self.user_feature['income'] = self.user_feature['income'].apply(lambda x: x // 2000)
+        print("income max:", self.user_feature['income'].max())
         income_map = self.calculate_user_map("income")
         self.user_feature['stage'] = self.user_feature['stage'].apply(lambda x: self.pre_pro_stage(x))
 
@@ -102,8 +103,9 @@ class DataProcess(UserBehavior):
         self.item_feature['cate_id'] = self.item_feature['cate_id'].apply(lambda x: self.cat_to_vector(x))
         self.item_feature['brand_id'] = self.item_feature['brand_id'].apply(lambda x: self.brand_id_to_vector(x))
         price_upper = self.item_feature['price'].mean() + 1 * self.item_feature['price'].std(axis=0)
-
+        print("price upper:", price_upper)
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
+        print("price upper:", self.item_feature['price'].max())
 
 if __name__ =='__main__':
     dp = DataProcess(small=True)
