@@ -2,6 +2,12 @@ from src.main import UserBehavior
 import json
 import pandas as pd
 import datetime
+import os
+import sys
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(os.path.split(rootPath)[0])
+
 class DataProcess(UserBehavior):
     def __init__(self, small=True):
         UserBehavior.__init__(self, small=small)
