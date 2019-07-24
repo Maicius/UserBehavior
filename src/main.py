@@ -1,10 +1,12 @@
-import sys
-import os
-
 import pandas as pd
 import re
 import json
 import numpy as np
+import os
+import sys
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(os.path.split(rootPath)[0])
 
 extract_age_pattern = '(?:\[([0-9]{1,2})\,([0-9]{1,2})\])|(?:\>=(60))'
 def complete_binary(num, length):
