@@ -4,14 +4,15 @@
    File Name：     run
    Author :        Xiaosong Zhou
    date：          2019/7/21
+   动态载入数据，和之前的静态载入数据向量区别开来
 -------------------------------------------------
 """
 __author__ = 'Xiaosong Zhou'
 import tensorflow as tf
 import numpy as np
-from model_1 import RecommenderNetworkConfig, RecommenderNetwork
+from src.model_dynamic import RecommenderNetworkConfig, RecommenderNetwork
 from sklearn.model_selection import train_test_split
-from main import UserBehavior
+from src.main import UserBehavior
 import time
 import os
 import pickle
@@ -60,17 +61,23 @@ def training(features, targets_values, epochs=5, log_freq=50):
             # Datasets can be iterated over like any other Python iterable.
             for batch_i in range(batch_num):
                 x, y = next(train_batches)
-                x_user, x_item = zip(*x)
-                x_user = np.mat(list(x_user))
-                x_item = np.mat(list(x_item))
-                input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
-                input_x_item = np.reshape(np.array(x_item), [config.batch_size, config.item_dim])
-                input_y = np.reshape(np.array(y), [config.batch_size, 1])
-                input_x = [input_x_user.astype('float32'), input_x_item.astype('float32')]
-                loss, logits = network.train_step(input_x, input_y.astype('float32'))
-
+                stages = np.zeros([config.batch_size, 6])
+                for i in range(config.batch_size):
+                    content = x.take(4,1)[i]
+                    content_nums = list(map(int, content[1:-1].split(',')))
+                    stages[i] = content_nums
+                loss, logits = network.train_step([np.reshape(x.take(0, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(1, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(2, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(3, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   stages.astype(np.float32),
+                                                   np.reshape(x.take(5, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(6, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(7, 1), [config.batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(8, 1), [config.batch_size, 1]).astype(np.float32)],
+                                                  np.reshape(y, [config.batch_size, 1]).astype(np.float32))
                 avg_loss(loss)
-                losses['train'].append(loss)
+                network.losses['train'].append(loss)
                 if tf.equal(network.optimizer.iterations % log_freq, 0):
                     rate = log_freq / (time.time() - start)
                     print('Step #{}\tEpoch {:>3} Batch {:>4}/{}   Loss: {:0.6f} mae: {:0.6f} ({} steps/sec)'.format(
@@ -112,19 +119,26 @@ def testing(test_dataset, step_num):
     for batch_i in range(batch_num):
         print("test batch: "+ str(batch_i))
         x, y = next(test_batches)
-        x_user, x_item = zip(*x)
-        x_user = np.mat(list(x_user))
-        x_item = np.mat(list(x_item))
-        input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
-        input_x_item = np.reshape(np.array(x_item), [config.batch_size, config.item_dim])
-        input_y = np.reshape(np.array(y), [config.batch_size, 1])
-        input_x = [input_x_user.astype('float32'), input_x_item.astype('float32')]
-        logits = network.model(input_x, training=False)
-        test_loss = network.ComputeLoss(input_y.astype('float32'), logits)
+        stages = np.zeros([config.batch_size, 6])
+        for i in range(config.batch_size):
+            content = x.take(4, 1)[i]
+            content_nums = list(map(int, content[1:-1].split(',')))
+            stages[i] = content_nums
+        logits = network.model([np.reshape(x.take(0, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(1, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(2, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(3, 1), [config.batch_size, 1]).astype(np.float32),
+                                stages.astype(np.float32),
+                                np.reshape(x.take(5, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(6, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(7, 1), [config.batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(8, 1), [config.batch_size, 1]).astype(np.float32)],
+                               training=False)
+        test_loss = network.ComputeLoss(y.astype('float32'), logits)
         avg_loss(test_loss)
         # 保存测试损失
-        losses['test'].append(test_loss)
-        network.ComputeMetrics(input_y.astype('float32'), logits)
+        network.losses['test'].append(test_loss)
+        network.ComputeMetrics(y.astype('float32'), logits)
 
     print('Model test set loss: {:0.6f} mae: {:0.6f}'.format(avg_loss.result(), network.ComputeMetrics.result()))
     # print('Model test set loss: {:0.6f} mae: {:0.6f}'.format(avg_loss.result(), avg_mae.result()))
@@ -151,14 +165,8 @@ if __name__ == '__main__':
     losses = {'train': [], 'test': []}
     network = RecommenderNetwork(config)
     # 获得特征
-    # user_embedding, item_feature_embedding, user_item_score = ub.load_train_vector()
-    user_embedding_chunks, item_feature_embedding_chunks, user_item_score_chunks = ub.chunk_load_train_vector()
-    # model_input_x = []
-    # model_input_x.append(user_embedding)
-    # model_input_x.append(item_feature_embedding)
-
-    # model_input_x = list(zip(user_embedding, item_feature_embedding))
-    model_input_x = list(zip(user_embedding_chunks, item_feature_embedding_chunks))
+    train_df, target_df = ub.chunk_load_train_data()
+    train_data = train_df.values
 
     if tf.io.gfile.exists(config.MODEL_DIR):
         #             print('Removing existing model dir: {}'.format(MODEL_DIR))
@@ -166,9 +174,4 @@ if __name__ == '__main__':
         pass
     else:
         tf.io.gfile.makedirs(config.MODEL_DIR)
-
-    # checkpoint = tf.train.Checkpoint(model=network.model, optimizer=network.optimizer)
-    # Restore variables on creation if a checkpoint exists.
-    # network.checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
-    # training(model_input_x, user_item_score, epochs=5)
-    training(model_input_x, user_item_score_chunks, epochs=5)
+    training(train_df.values, target_df.values, epochs=5)
