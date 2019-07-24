@@ -59,16 +59,11 @@ def training(features, targets_values, epochs=5, log_freq=50):
 
             # Datasets can be iterated over like any other Python iterable.
             for batch_i in range(batch_num):
-                if batch_i == 3:
-                    print('debug')
                 x, y = next(train_batches)
                 x_user, x_item = zip(*x)
                 x_user = np.mat(list(x_user))
                 x_item = np.mat(list(x_item))
-                try:
-                    input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
-                except Exception:
-                    print('hello')
+                input_x_user = np.reshape(np.array(x_user), [config.batch_size, config.user_dim])
                 input_x_item = np.reshape(np.array(x_item), [config.batch_size, config.item_dim])
                 input_y = np.reshape(np.array(y), [config.batch_size, 1])
                 input_x = [input_x_user.astype('float32'), input_x_item.astype('float32')]
@@ -154,14 +149,14 @@ if __name__ == '__main__':
     losses = {'train': [], 'test': []}
     network = RecommenderNetwork(config)
     # 获得特征
-    user_embedding, item_feature_embedding, user_item_score = ub.load_train_vector()
-    # user_embedding_chunks, item_feature_embedding_chunks, user_item_score_chunks = ub.chunk_load_train_vector(chunkSize=1000)
+    # user_embedding, item_feature_embedding, user_item_score = ub.load_train_vector()
+    user_embedding_chunks, item_feature_embedding_chunks, user_item_score_chunks = ub.chunk_load_train_vector(chunkSize=1000)
     # model_input_x = []
     # model_input_x.append(user_embedding)
     # model_input_x.append(item_feature_embedding)
 
-    model_input_x = list(zip(user_embedding, item_feature_embedding))
-    # model_input_x = list(zip(user_embedding_chunks, item_feature_embedding_chunks))
+    # model_input_x = list(zip(user_embedding, item_feature_embedding))
+    model_input_x = list(zip(user_embedding_chunks, item_feature_embedding_chunks))
 
     if tf.io.gfile.exists(config.MODEL_DIR):
         #             print('Removing existing model dir: {}'.format(MODEL_DIR))
@@ -173,5 +168,5 @@ if __name__ == '__main__':
     # checkpoint = tf.train.Checkpoint(model=network.model, optimizer=network.optimizer)
     # Restore variables on creation if a checkpoint exists.
     # network.checkpoint.restore(tf.train.latest_checkpoint(checkpoint_dir))
-    training(model_input_x, user_item_score, epochs=5)
-    # training(model_input_x, user_item_score_chunks, epochs=5)
+    # training(model_input_x, user_item_score, epochs=5)
+    training(model_input_x, user_item_score_chunks, epochs=5)
