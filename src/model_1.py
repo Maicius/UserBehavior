@@ -13,7 +13,6 @@ import tensorflow as tf
 import datetime
 import os
 import numpy as np
-from src.main import UserBehavior
 from tensorflow import keras
 from tensorflow.python.ops import summary_ops_v2
 
@@ -26,7 +25,8 @@ class RecommenderNetworkConfig(object):
     train_dir = os.path.join(MODEL_DIR, 'summaries', 'train')
     test_dir = os.path.join(MODEL_DIR, 'summaries', 'eval')
     lr = 0.0001
-    embed_dim = 40
+    embed_dim = 256
+    hidden_dim = 128
     user_dim = 40
     item_dim = 44
 
@@ -39,10 +39,14 @@ class RecommenderNetwork(object):
 
         # 我这里开个全连接层，可训练
         self.user_fc = tf.keras.layers.Dense(self.config.embed_dim, name='user_fc', activation='relu')(self.user_feature)
+        # 第二层全连接
+        self.user_fc2 = tf.keras.layers.Dense(self.config.hidden_dim, name='user_fc_2',activation='relu')(self.user_fc)
         self.item_fc = tf.keras.layers.Dense(self.config.embed_dim, name='item_fc', activation='relu')(self.item_feature)
+        # 第二层全连接
+        self.item_fc2 = tf.keras.layers.Dense(self.config.hidden_dim, name='item_fc_2', activation='relu')(self.item_fc)
 
         inference = tf.keras.layers.Lambda(lambda layer: tf.reduce_sum(layer[0] * layer[1], axis=1), name="inference")(
-            (self.user_fc, self.item_fc))
+            (self.user_fc2, self.item_fc2))
         inference = tf.keras.layers.Lambda(lambda layer: tf.expand_dims(layer, axis=1))(inference)
         self.model = tf.keras.Model(inputs=[self.user_feature, self.item_feature], outputs=[inference])
         self.model.summary()

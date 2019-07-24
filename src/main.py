@@ -15,6 +15,7 @@ def complete_binary(num, length):
 class UserBehavior(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
     mid_pre = "../mid_data/"
+    real_pre = "../mid_data_random/"
     res_pre = "../result_data/"
     # 对用户的每种行为进行打分
     behavior_score = {
@@ -87,43 +88,66 @@ class UserBehavior(object):
 
     def chunk_load_train_vector(self, chunkSize=100000):
         # 添加分段读取逻辑，几十个G的扛不住
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv', iterator=True)
+        # user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_small0.01.csv', iterator=True)
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_Fix.csv', iterator=True)
         loop = True
         chunks = []
+        index_i = 0
         while loop:
+            index_i += 1
+            print("第{}轮读取csv", index_i)
             try:
                 chunk = user_item_score_vector_pd.get_chunk(chunkSize)
                 chunks.append(chunk)
             except StopIteration:
                 loop = False
                 print("Iteration is stopped.")
+        print("开始拼接csv")
         df_all = pd.concat(chunks, ignore_index=True)
+        print("拼接csv完成")
+        print("开始查询列")
         user_vector = df_all['user_vector']
         item_vector = df_all['item_vector']
         score = df_all['behavior_type']
+        print("查询完成")
         item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
         user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
         score_vectore = list(map(lambda x: float(x), score))
+        print("训练数据获取完成")
 
-
-
-        # user_vector_chunks = []
-        # item_vector_chunks = []
-        # score_chunks = []
-        # for i in chunks:
-        #     user_vector = i['user_vector']
-        #     user_vector_chunks.append(user_vector)
-        #     user_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), user_vector))
-        #     user_vector_chunks.extend(user_vector)
-        #     item_vector = i['item_vector']
-        #     item_vector = list(map(lambda x: list(map(int, x[1:-1].split(','))), item_vector))
-        #     item_vector_chunks.extend(item_vector)
-        #     score = i['behavior_type']
-        #     score_vectore = list(map(lambda x: float(x), score))
-        #     score_chunks.extend(score_vectore)
-
-        # return user_vector_chunks, item_vector_chunks, score_chunks
-        return user_vector, item_vector, score_vectore
+    def chunk_load_train_data(self, chunkSize=100000):
+        # 添加分段读取逻辑，几十个G的扛不住
+        # 读取列表，而不是向量的结构
+        # 返回整个dataframe
+        # user_item_score_vector_pd = pd.read_csv(self.real_pre + 'user_item_score_vector_Random2.csv',
+        #                                         names=['behavior_type', 'gender',
+        #                                                'age', 'career', 'income', 'stage', 'cate_1_id',
+        #                                                'cate_id', 'brand_id', 'price'],
+        #                                         iterator=True)
+        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_Random2.csv',
+                                                names=['behavior_type', 'gender',
+                                                       'age', 'career', 'income', 'stage', 'cate_1_id',
+                                                       'cate_id', 'brand_id', 'price'],
+                                                iterator=True)
+        loop = True
+        chunks = []
+        index_i = 0
+        while loop:
+            index_i += 1
+            print("第{}轮读取csv", index_i)
+            try:
+                chunk = user_item_score_vector_pd.get_chunk(chunkSize)
+                chunks.append(chunk)
+            except StopIteration:
+                loop = False
+                print("Iteration is stopped.")
+        print("开始拼接csv")
+        df_all = pd.concat(chunks, ignore_index=True)
+        print("拼接csv完成")
+        target_fields = ['behavior_type']
+        features_pd, targets_pd = df_all.drop(target_fields, axis=1), df_all[target_fields]
+        print('数据处理完成')
+        return features_pd, targets_pd
 
     def cal_item_vector(self):
         with open(self.mid_pre + "cate_1_dict.json", 'r', encoding='utf-8') as r:
