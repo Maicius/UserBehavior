@@ -109,7 +109,7 @@ class UserBehavior(object):
             score = i['behavior_type']
             score_vectore = list(map(lambda x: float(x), score))
             score_chunks.extend(score_vectore)
-
+        print("finish")
         return user_vector_chunks, item_vector_chunks, score_chunks
 
     def cal_item_vector(self):
@@ -153,11 +153,18 @@ class UserBehavior(object):
         # user_item_df['behavior_type'] = user_item_df['behavior_type'] * user_item_df['hot_punish']
         # print("热门惩罚")
         # user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
-        # 归一化
-        score_max = user_item_df['behavior_type'].max()
-        score_min = user_item_df['behavior_type'].min()
-        score_diff = score_max - score_min
-        user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
+
+        # 对数变换，将长尾分布转换为正太分布
+        user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: np.round(np.log10(x + 1),3))
+
+        # 找出正太分布中的3 sigmoid位置, 使pper的值变为最大值
+        # upper = user_item_df['behavior_type'].mean() + 3 * user_item_df['behavior_type'].std()
+        # user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: x if x <= upper else upper)
+        # score_min = user_item_df['behavior_type'].min()
+        # score_diff = upper - score_min
+        # # 归一化
+        # user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
+
         print("归一化")
         self.user_item_score = user_item_df
 
@@ -252,7 +259,7 @@ class UserBehavior(object):
         return complete_binary(cat, 14)
 
     def load_train(self):
-        file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train"
+        file_name = self.mid_pre + "train.csv0.01" if self.small else self.pre + "train"
         data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data
@@ -302,4 +309,5 @@ class UserBehavior(object):
 if __name__ == '__main__':
     print("begin")
     ub = UserBehavior(small=False)
-    ub.main(merge=True)
+    # ub.main(merge=True)
+    ub.chunk_load_train_vector()

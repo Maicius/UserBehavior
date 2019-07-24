@@ -63,7 +63,7 @@ def get_small_raw_train_sample(frac):
     pre = "../raw_data/ECommAI_ubp_round1_"
     data = pd.read_csv(pre + "train", sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
     data = data.sample(frac=frac)
-    data.to_csv("../mid_data/train" + str(frac), index=False, header=None)
+    data.to_csv("../mid_data/train.csv" + str(frac),sep="\t", index=False, header=None)
 
 def get_small_train_sample(frac):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -83,13 +83,15 @@ def extract_small_feature():
 
 if __name__ =='__main__':
     # extract_item_cat_1_dict()
-    # 提取小数据集，num=-1表示取全部
-    # get_small_sample(0.01)
-    # get_small_raw_train_sample(0.01)
+
+    # 对原始数据集进行采样
+    get_small_raw_train_sample(0.01)
+
     # extract_small_feature()
-    get_small_data("train", num=100000)
-    get_small_data("item_feature", num=100000)
-    get_small_data("user_feature", num=100000)
+    # 提取小数据集，num=-1表示取全部
+    # get_small_data("train", num=100000)
+    # get_small_data("item_feature", num=100000)
+    # get_small_data("user_feature", num=100000)
     # 对整个数据集进行随机采样
     # get_small_sample(0.01)
 
