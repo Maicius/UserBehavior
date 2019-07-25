@@ -17,7 +17,8 @@ from tensorflow.python.ops import summary_ops_v2
 
 
 class RecommenderNetworkConfig(object):
-    batch_size = 256
+    train_batch_size = 512
+    test_batch_size = 512
     MODEL_DIR = '../model'
     checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints')
     checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')

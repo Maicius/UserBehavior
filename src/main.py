@@ -121,16 +121,16 @@ class UserBehavior(object):
         # 添加分段读取逻辑，几十个G的扛不住
         # 读取列表，而不是向量的结构
         # 返回整个dataframe
-        # user_item_score_vector_pd = pd.read_csv(self.real_pre + 'user_item_score_vector_Random2.csv',
-        #                                         names=['behavior_type', 'gender',
-        #                                                'age', 'career', 'income', 'stage', 'cate_1_id',
-        #                                                'cate_id', 'brand_id', 'price'],
-        #                                         iterator=True)
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_Random2.csv',
+        user_item_score_vector_pd = pd.read_csv(self.real_pre + 'user_item_score_vector_Random2.csv',
                                                 names=['behavior_type', 'gender',
                                                        'age', 'career', 'income', 'stage', 'cate_1_id',
                                                        'cate_id', 'brand_id', 'price'],
                                                 iterator=True)
+        # user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_Random2.csv',
+        #                                         names=['behavior_type', 'gender',
+        #                                                'age', 'career', 'income', 'stage', 'cate_1_id',
+        #                                                'cate_id', 'brand_id', 'price'],
+        #                                         iterator=True)
         loop = True
         chunks = []
         index_i = 0
