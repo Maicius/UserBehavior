@@ -32,10 +32,10 @@ class RecommenderNetworkConfig(object):
     gender_dim = 2
     age_dim = 10
     career_dim = 10
-    income_dim = 11
+    income_dim = 12
     stage_dim = 11
 
-    price_dim = 116
+    price_dim = 2231
     cate_1_dim = 111
     cate_dim = 8381
     brand_dim = 197784
