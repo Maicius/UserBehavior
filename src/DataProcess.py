@@ -1,7 +1,14 @@
-from src.main import UserBehavior
 import json
 import pandas as pd
 import datetime
+import os
+import sys
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(rootPath)
+print(sys.path)
+from src.main import UserBehavior
+
 class DataProcess(UserBehavior):
     def __init__(self, small=True):
         UserBehavior.__init__(self, small=small)
@@ -17,13 +24,18 @@ class DataProcess(UserBehavior):
         self.cal_user_vector()
         print("cal item vector", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
         self.cal_item_vector()
+        print("before merge shape:", self.user_item_score.shape)
         if merge:
             print("merge 1...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.user_feature,how='inner', on='user_id')
+            print("first merge shape:", self.user_item_score.shape)
             print("merge 2...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             self.user_item_score = pd.merge(self.user_item_score, self.item_feature, how='inner', on='item_id')
+            print("second merge shape:", self.user_item_score.shape)
             print("save file...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
+            # self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
+            self.user_item_score.drop(["user_id", "item_id"],axis=1, inplace=True)
+            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random2.csv', index=False, header=None)
         self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
         self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random.csv")
         print("finish all", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
@@ -53,6 +65,7 @@ class DataProcess(UserBehavior):
         age_map = self.calculate_user_map("age")
         career_map = self.calculate_user_map("career")
         self.user_feature['income'] = self.user_feature['income'].apply(lambda x: x // 2000)
+        print("income max:", self.user_feature['income'].max())
         income_map = self.calculate_user_map("income")
         self.user_feature['stage'] = self.user_feature['stage'].apply(lambda x: self.pre_pro_stage(x))
 
@@ -90,8 +103,9 @@ class DataProcess(UserBehavior):
         self.item_feature['cate_id'] = self.item_feature['cate_id'].apply(lambda x: self.cat_to_vector(x))
         self.item_feature['brand_id'] = self.item_feature['brand_id'].apply(lambda x: self.brand_id_to_vector(x))
         price_upper = self.item_feature['price'].mean() + 1 * self.item_feature['price'].std(axis=0)
-
+        print("price upper:", price_upper)
         self.item_feature['price'] = self.item_feature['price'].apply(lambda x: self.price_to_embedding(x, price_upper))
+        print("price upper:", self.item_feature['price'].max())
 
 if __name__ =='__main__':
     dp = DataProcess(small=True)
