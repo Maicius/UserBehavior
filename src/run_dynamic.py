@@ -46,8 +46,8 @@ def training(features, targets_values, epochs=5, log_freq=50):
                                                             test_size=0.2,
                                                             random_state=0)
 
-        train_batches = get_batches(train_X, train_y, config.batch_size)
-        batch_num = (len(train_X) // config.batch_size)
+        train_batches = get_batches(train_X, train_y, config.train_batch_size)
+        batch_num = (len(train_X) // config.train_batch_size)
 
         train_start = time.time()
         #             with self.train_summary_writer.as_default():
@@ -61,21 +61,21 @@ def training(features, targets_values, epochs=5, log_freq=50):
             # Datasets can be iterated over like any other Python iterable.
             for batch_i in range(batch_num):
                 x, y = next(train_batches)
-                stages = np.zeros([config.batch_size, 6])
-                for i in range(config.batch_size):
+                stages = np.zeros([config.train_batch_size, 6])
+                for i in range(config.train_batch_size):
                     content = x.take(4,1)[i]
                     content_nums = list(map(int, content[1:-1].split(',')))
                     stages[i] = content_nums
-                loss, logits = network.train_step([np.reshape(x.take(0, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(1, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(2, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(3, 1), [config.batch_size, 1]).astype(np.float32),
+                loss, logits = network.train_step([np.reshape(x.take(0, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(1, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(2, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(3, 1), [config.train_batch_size, 1]).astype(np.float32),
                                                    stages.astype(np.float32),
-                                                   np.reshape(x.take(5, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(6, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(7, 1), [config.batch_size, 1]).astype(np.float32),
-                                                   np.reshape(x.take(8, 1), [config.batch_size, 1]).astype(np.float32)],
-                                                  np.reshape(y, [config.batch_size, 1]).astype(np.float32))
+                                                   np.reshape(x.take(5, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(6, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(7, 1), [config.train_batch_size, 1]).astype(np.float32),
+                                                   np.reshape(x.take(8, 1), [config.train_batch_size, 1]).astype(np.float32)],
+                                                  np.reshape(y, [config.train_batch_size, 1]).astype(np.float32))
                 avg_loss(loss)
                 network.losses['train'].append(loss)
                 if tf.equal(network.optimizer.iterations % log_freq, 0):
@@ -109,30 +109,30 @@ def training(features, targets_values, epochs=5, log_freq=50):
 
 def testing(test_dataset, step_num):
     test_X, test_y = test_dataset
-    test_batches = get_batches(test_X, test_y, config.batch_size)
+    test_batches = get_batches(test_X, test_y, config.test_batch_size)
     """Perform an evaluation of `model` on the examples from `dataset`."""
     avg_loss = tf.keras.metrics.Mean('loss', dtype=tf.float32)
     # avg_mae = tf.keras.metrics.Mean('mae', dtype=tf.float32)
 
-    batch_num = (len(test_X) // config.batch_size)
+    batch_num = (len(test_X) // config.test_batch_size)
     print("test_batch_num: " + str(batch_num))
     for batch_i in range(batch_num):
         print("test batch: "+ str(batch_i))
         x, y = next(test_batches)
-        stages = np.zeros([config.batch_size, 6])
-        for i in range(config.batch_size):
+        stages = np.zeros([config.test_batch_size, 6])
+        for i in range(config.test_batch_size):
             content = x.take(4, 1)[i]
             content_nums = list(map(int, content[1:-1].split(',')))
             stages[i] = content_nums
-        logits = network.model([np.reshape(x.take(0, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(1, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(2, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(3, 1), [config.batch_size, 1]).astype(np.float32),
+        logits = network.model([np.reshape(x.take(0, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(1, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(2, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(3, 1), [config.test_batch_size, 1]).astype(np.float32),
                                 stages.astype(np.float32),
-                                np.reshape(x.take(5, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(6, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(7, 1), [config.batch_size, 1]).astype(np.float32),
-                                np.reshape(x.take(8, 1), [config.batch_size, 1]).astype(np.float32)],
+                                np.reshape(x.take(5, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(6, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(7, 1), [config.test_batch_size, 1]).astype(np.float32),
+                                np.reshape(x.take(8, 1), [config.test_batch_size, 1]).astype(np.float32)],
                                training=False)
         test_loss = network.ComputeLoss(y.astype('float32'), logits)
         avg_loss(test_loss)
