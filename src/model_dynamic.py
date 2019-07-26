@@ -17,14 +17,14 @@ from tensorflow.python.ops import summary_ops_v2
 
 
 class RecommenderNetworkConfig(object):
-    train_batch_size = 512
-    test_batch_size = 512
+    train_batch_size = 128
+    test_batch_size = 128
     MODEL_DIR = '../model'
     checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints')
     checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
     train_dir = os.path.join(MODEL_DIR, 'summaries', 'train')
     test_dir = os.path.join(MODEL_DIR, 'summaries', 'eval')
-    lr = 0.0001
+    lr = 0.001
     embed_dim = 32
     fc_dim = 32
     hidden_dim = 128
