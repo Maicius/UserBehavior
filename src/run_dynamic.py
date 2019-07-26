@@ -60,12 +60,15 @@ def training(features, targets_values, epochs=5, log_freq=50):
 
             # Datasets can be iterated over like any other Python iterable.
             for batch_i in range(batch_num):
+
                 x, y = next(train_batches)
                 stages = np.zeros([config.train_batch_size, 6])
                 for i in range(config.train_batch_size):
                     content = x.take(4,1)[i]
                     content_nums = list(map(int, content[1:-1].split(',')))
                     stages[i] = content_nums
+                if batch_i == 1:
+                    print('hi')
                 loss, logits = network.train_step([np.reshape(x.take(0, 1), [config.train_batch_size, 1]).astype(np.float32),
                                                    np.reshape(x.take(1, 1), [config.train_batch_size, 1]).astype(np.float32),
                                                    np.reshape(x.take(2, 1), [config.train_batch_size, 1]).astype(np.float32),
@@ -174,4 +177,4 @@ if __name__ == '__main__':
         pass
     else:
         tf.io.gfile.makedirs(config.MODEL_DIR)
-    training(train_df.values, target_df.values, epochs=5)
+    training(train_df.values, target_df.values, epochs=20)
