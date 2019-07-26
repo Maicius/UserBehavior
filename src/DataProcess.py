@@ -35,9 +35,9 @@ class DataProcess(UserBehavior):
             print("save file...", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
             # self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random.csv')
             self.user_item_score.drop(["user_id", "item_id"],axis=1, inplace=True)
-            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random2.csv', index=False, header=None)
-        self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random.csv")
-        self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random.csv")
+            self.user_item_score.to_csv(self.mid_pre_random + 'user_item_score_vector_Random_Scale.csv', index=False, header=None)
+        self.user_feature.to_csv(self.mid_pre_random + "user_feature_vector_Random_Scale.csv")
+        self.item_feature.to_csv(self.mid_pre_random + "item_feature_vector_Random_Scale.csv")
         print("finish all", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
 
     def calculate_user_map(self, type, save=True):
@@ -108,5 +108,5 @@ class DataProcess(UserBehavior):
         print("price upper:", self.item_feature['price'].max())
 
 if __name__ =='__main__':
-    dp = DataProcess(small=True)
+    dp = DataProcess(small=False)
     dp.process()
