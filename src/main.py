@@ -177,10 +177,10 @@ class UserBehavior(object):
 
     def cal_user_item_score(self):
         self.train['behavior_type'] = self.train['behavior_type'].map(self.behavior_score)
-        date_max = self.train['date'].max()
-        date_min = self.train['date'].min()
+        date_max = 20190620
+        date_min = 20190610
         # 引入时间权重
-        self.train['date'] = self.train['date'].apply(lambda x: self.cal_date_score(x, date_min, date_max))
+        self.train['date'] = self.train['date'].apply(lambda x: self.cal_date_score(x))
         self.train['behavior_type'] = self.train['behavior_type'] * self.train['date']
         print("finish time")
         user_item_df = self.train.groupby(by=['user_id', 'item_id'])['behavior_type'].sum().reset_index()
@@ -194,7 +194,7 @@ class UserBehavior(object):
         # user_item_df.drop(['hot', 'hot_punish'], axis=1, inplace=True)
 
         # 对数变换，将长尾分布转换为正太分布
-        user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: np.round(np.log10(x + 1),3))
+        # user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: np.round(np.log(x + 1),3))
 
         # 找出正太分布中的3 sigmoid位置, 使pper的值变为最大值
         # upper = user_item_df['behavior_type'].mean() + 3 * user_item_df['behavior_type'].std()
@@ -203,16 +203,18 @@ class UserBehavior(object):
         # score_diff = upper - score_min
         # # 归一化
         # user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: (x - score_min) / score_diff)
-
+        user_item_df['behavior_type'] = user_item_df['behavior_type'].apply(lambda x: np.round(x, 3))
         print("归一化")
         self.user_item_score = user_item_df
 
     @staticmethod
-    def cal_date_score(date, date_min, date_max):
+    def cal_date_score(date):
         # date_max = 20190620
-        date_diff = (date - date_min) / (date_max - date_min)
+        date_min = 20190610
+        date_max = 20190620
+        date_diff = (date - date_min) / (10)
         f_dt = 1 / (1 + np.e ** (date_diff))
-        return f_dt
+        return f_dt + 1
 
     def cal_hot_punish(self, item_id):
         user_num = self.item_user_num.loc[item_id]['hot']
@@ -348,5 +350,5 @@ class UserBehavior(object):
 if __name__ == '__main__':
     print("begin")
     ub = UserBehavior(small=False)
-    # ub.main(merge=True)
-    ub.chunk_load_train_vector()
+    ub.main(merge=True)
+    # ub.chunk_load_train_vector()
