@@ -87,17 +87,19 @@ def extract_small_feature():
 
 
 def print_max():
-    data = pd.read_csv("../mid_data_random/user_item_score_vector_random2.csv", header=None,
+    data = pd.read_csv("../mid_data_random/user_item_score_vector_Random3.csv", header=None,
                        names=["behavior_type", "gender", "age", "career", "income", "stage", "cate_1_id", "cate_id",
                               "brand_id", "price"])
-    min_price = data['price'].min()
-    max_price = data['price'].max()
+    data['behavior_type'] = data['behavior_type'].apply(lambda x: x * 10)
+    # min_price = data['price'].min()
+    # max_price = data['price'].max()
+    #
+    # min_income = data['income'].min()
+    # max_income = data['income'].max()
 
-    min_income = data['income'].min()
-    max_income = data['income'].max()
-
-    print("price:", min_price, max_price)
-    print("income:", min_income, max_income)
+    # print("price:", min_price, max_price)
+    # print("income:", min_income, max_income)
+    data.to_csv("../mid_data_random/user_item_score_vector_Random4.csv", header=None, index=False)
 
 
 if __name__ == '__main__':
