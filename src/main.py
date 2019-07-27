@@ -300,7 +300,7 @@ class UserBehavior(object):
         return complete_binary(cat, 14)
 
     def load_train(self):
-        file_name = self.mid_pre + "train.csv0.01" if self.small else self.pre + "train"
+        file_name = self.mid_pre + "train.csv0.1" if self.small else self.mid_pre + "train.csv0.1"
         data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data

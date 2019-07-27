@@ -10,6 +10,12 @@ __author__ = 'Xiaosong Zhou'
 
 import pandas as pd
 import numpy as np
+import os
+import sys
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(rootPath)
+print(sys.path)
 from src.model_dynamic import RecommenderNetworkConfig, RecommenderNetwork
 # 预测函数 动态列表输入形式
 
