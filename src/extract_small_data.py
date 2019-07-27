@@ -101,9 +101,21 @@ def print_max():
     # print("income:", min_income, max_income)
     data.to_csv("../mid_data_random/user_item_score_vector_Random4.csv", header=None, index=False)
 
+def big_merge():
+    test_user_id = pd.read_csv("../raw_data/ECommAI_ubp_round1_test", header=None, names=['user_id'])
+    print(test_user_id.shape)
+    user_feature = pd.read_csv("../mid_data_random/user_feature_vector_Random_Scale_0.1.csv")
+    print(user_feature.shape)
+    item_feature = pd.read_csv("../mid_data_random/item_feature_vector_Random_Scale_0.1.csv")
+    print(item_feature.shape)
+    user_feature = pd.merge(user_feature, test_user_id, on="user_id")
+    print(user_feature.shape)
+    pass
+
 
 if __name__ == '__main__':
     pass
+    big_merge()
     # extract_item_cat_1_dict()
 
     # 对原始数据集进行采样
@@ -116,4 +128,5 @@ if __name__ == '__main__':
     # get_small_data("user_feature", num=100000)
     # 对整个数据集进行随机采样
     # get_small_sample(0.01)
-    print(print_max())
+    # get_small_raw_train_sample(0.1)
+    # print(print_max())

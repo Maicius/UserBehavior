@@ -3,6 +3,12 @@ import tensorflow as tf
 import datetime
 import time
 import os
+import os
+import sys
+curPath = os.path.abspath(os.path.dirname(__file__))
+rootPath = os.path.split(curPath)[0]
+sys.path.append(rootPath)
+print(sys.path)
 import numpy as np
 from sklearn.model_selection import train_test_split
 import pandas as pd
