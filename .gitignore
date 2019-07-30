@@ -2,6 +2,6 @@ ECommAI*
 *.csv
 *.pyc
 *.csv*
-model/*
 mid_data/*
 mid_data_random/*
+model/*
