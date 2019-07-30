@@ -2,3 +2,4 @@ ECommAI*
 *.csv
 *.pyc
 *.csv*
+model/*
