@@ -126,7 +126,7 @@ class UserBehavior(object):
         #                                                'age', 'career', 'income', 'stage', 'cate_1_id',
         #                                                'cate_id', 'brand_id', 'price'],
         #                                         iterator=True)
-        user_item_score_vector_pd = pd.read_csv(self.mid_pre + 'user_item_score_vector_Random4.csv',
+        user_item_score_vector_pd = pd.read_csv(self.real_pre + 'user_item_score_vector_Random4.csv',
                                                 names=['behavior_type', 'gender',
                                                        'age', 'career', 'income', 'stage', 'cate_1_id',
                                                        'cate_id', 'brand_id', 'price'],
