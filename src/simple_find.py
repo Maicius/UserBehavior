@@ -1,6 +1,10 @@
 # coding=utf-8
 import pandas as pd
 import numpy as np
+from random import sample
+import json
+import datetime
+import multiprocessing
 
 class Simple_find(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -16,22 +20,102 @@ class Simple_find(object):
 
     def __init__(self, small=True):
         self.small = small
-
+        self.process_num = 5
 
     def simple_main(self):
         # self.user_feature = self.load_user_feature()
         self.test_user_feature = pd.read_csv(self.pre + "test", header=None, names=['user_id'])
         self.train = self.load_train()
-
         # 引入时间权重
+        if self.small:
+            users = list(set(self.train['user_id'].values))
+            user_num = len(users)
+        else:
+            users = self.test_user_feature['user_id'].values
+            user_num = self.test_user_feature.shape[0]
+
         self.train['date'] = self.train['date'].apply(lambda x: self.cal_date_score(x))
+        self.already_buy_df = self.train.loc[self.train['behavior_type'] == 'buy',:]
+        self.already_buy_df = self.already_buy_df.groupby(by='user_id')
         self.train['behavior_type'] = self.train['behavior_type'].map(self.behavior_score)
         self.train['behavior_type'] = self.train['behavior_type'] * self.train['date']
+        # self.already_buy_df.groupby(by='user_id').get_group(1732029186)
         self.train = self.train.groupby(by=['user_id', 'item_id'])['behavior_type'].sum().reset_index()
         top_50_hot = self.train.groupby(by='item_id')['behavior_type'].mean().reset_index()
         top_50_hot = top_50_hot.sort_values(by=['behavior_type'], ascending=False)
-        top_50_hot = top_50_hot.loc[top_50_hot['behavior_type'] > 10]
-        pass
+        top_50_hot = top_50_hot.loc[top_50_hot['behavior_type'] > 10,:]
+        top_50_hot = top_50_hot.sample(n=1000)
+
+        self.train = self.train.groupby(by=['user_id'])
+        # users = self.test_user_feature['user_id'].values
+        # user_num = self.test_user_feature.shape[0]
+        step = user_num // self.process_num
+
+        process_list = []
+        for i in range(self.process_num):
+            p = multiprocessing.Process(target=self.find_item_for_user,
+                                        args=(users, top_50_hot, self.already_buy_df, self.train, i, step))
+            p.daemon = True
+            process_list.append(p)
+        for p in process_list:
+            p.start()
+
+        for p in process_list:
+            p.join()
+        self.update_user_dict()
+
+    def find_item_for_user(self, users, top_50_hot,already_buy_df, train, index, step):
+        print("进入进程", index)
+        result = []
+        begin = index * step
+        end = (index + 1) * step
+        for j in range(begin, end):
+
+            user = users[j]
+            print(j, user, datetime.datetime.now())
+            try:
+                buy_set = set(already_buy_df.get_group(user)['item_id'].values)
+            except:
+                buy_set = set()
+            try:
+                click_df = train.get_group(user)
+                top_100 = click_df.sort_values(by='behavior_type', ascending=False).head(100)
+                click_set = set(top_100['item_id'])
+            except:
+                click_set = set()
+            predict_set = click_set - buy_set
+            set_length = len(predict_set)
+            if set_length < 50:
+                i = 0
+                while set_length < 50:
+                    n = 50 - set_length
+                    predict_set = predict_set | set(top_50_hot.sample(n=n)['item_id'])
+                    set_length = len(predict_set)
+                    i += 1
+                    if i > 10:
+                        print("error")
+                        break
+            elif set_length > 50:
+                predict_set = sample(list(predict_set), 50)
+            # print(predict_set)
+            predict_list = map(str, list(predict_set))
+            predict_list = ",".join(predict_list)
+            # print(predict_list)
+            result.append(dict(user_id=int(user), item_list=predict_list))
+        with open(self.mid_pre + "tmp_result" + str(index) + ".json", 'w', encoding='utf-8') as w:
+            json.dump(result, w)
+
+
+    def update_user_dict(self):
+        all_user_dict = []
+        for i in range(self.process_num):
+            with open(self.mid_pre + "tmp_result" + str(i) + '.json', 'r', encoding='utf-8') as r:
+                data = json.load(r)
+                all_user_dict.extend(data)
+        data = pd.DataFrame(all_user_dict)
+        # result = pd.merge(self.test_user_feature, data, on='user_id')
+        result = self.test_user_feature.merge(data, how='inner', on='user_id')
+        result.to_csv(self.res_pre + "result", sep="\t", header=None, index=False)
 
 
     @staticmethod
@@ -82,6 +166,7 @@ class Simple_find(object):
         print("load train data, shape:", data.shape)
         return data
 
+
 if __name__ =='__main__':
-    sf = Simple_find(small=True)
+    sf = Simple_find(small=False)
     sf.simple_main()
