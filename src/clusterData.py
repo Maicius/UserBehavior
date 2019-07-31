@@ -7,6 +7,9 @@ rootPath = os.path.split(curPath)[0]
 sys.path.append(os.path.split(rootPath)[0])
 import json
 import datetime
+import multiprocessing
+import redis
+
 class clusterData(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
     mid_pre = "../mid_data/"
@@ -17,6 +20,9 @@ class clusterData(object):
         # 置信度
         self.support_degree = sup
         self.small = small
+        pool = redis.ConnectionPool(host='127.0.01', port=6379, decode_responses=True)
+        self.re = redis.StrictRedis(connection_pool=pool)
+        self.user_dict_list = []
 
     def find_frequent_cate(self):
         # 平均每位用户点的小类——42
@@ -32,15 +38,30 @@ class clusterData(object):
         print("replace...", datetime.datetime.now())
         self.train['cate_id'] = self.train['item_id'].apply(lambda x: self.replace_item_id_with_brand(x))
         self.train['num'] = 1
+
         self.train.drop(index=self.train[self.train['cate_id'] == -1].index, inplace=True)
         # 每个用户对应的品牌，去重
         print("每个用户对应的品牌，去重...", datetime.datetime.now())
         self.train = self.train.groupby(by=['user_id', 'cate_id'])['num'].sum().reset_index()
         self.train['num'] = 1
-        self.user_set = set(self.train['user_id'])
+        self.user_set = list(set(self.train['user_id']))
         self.total_user_num = len(self.user_set)
+        step = int(self.total_user_num // 10)
+
+        process_list = []
+        for i in range(10):
+            p = multiprocessing.Process(target=self.cal_brand_id_with_user, args=(self.train, self.user_set, self.item_cate_df, i, step))
+            p.daemon = True
+            process_list.append(p)
+        for p in process_list:
+            p.start()
+
+        for p in process_list:
+            p.join()
+
+        self.update_user_dict()
         print("find brand_id with user...", datetime.datetime.now())
-        user_dict = self.cal_brand_id_with_user(df=self.train, user_set=self.user_set, item_cate_df=self.item_cate_df)
+        # user_dict = self.cal_brand_id_with_user(df=self.train, user_set=self.user_set, item_cate_df=self.item_cate_df)
         # 每个品牌在不同的用户中出现的次数
         self.item_num = self.train.groupby(by=['cate_id'])['num'].sum().reset_index()
         support_num = self.support_degree * self.total_user_num
@@ -53,18 +74,31 @@ class clusterData(object):
         print("清洗后:", self.all_frequent_item_list)
         with open(self.mid_pre + "freq_item_list", 'w', encoding='utf-8') as w:
             w.writelines(self.all_frequent_item_list)
-        pass
 
-    def cal_brand_id_with_user(self, df, user_set, item_cate_df):
+
+    def update_user_dict(self):
+        all_user_dict = {}
+        for i in range(10):
+            with open(self.mid_pre + "user_brand_item_dict" + str(i) + '.json', 'r', encoding='utf-8') as r:
+                data = json.load(r)
+                all_user_dict.update(data)
+        with open(self.mid_pre + "all_user_brand_item_dict.json", 'w', encoding='utf-8') as w:
+            json.dump(all_user_dict, w)
+
+    def cal_brand_id_with_user(self, df, user_set, item_cate_df, i, step):
+        print('进程',i,'开始...')
         user_dict = {}
-        for user in user_set:
-            print("user, ", user, datetime.datetime.now())
+        begin = step * i
+        end = step * (i + 1)
+        for index in range(begin, end):
+            user = user_set[i]
+            print(index, user, datetime.datetime.now())
             cate_list = df.loc[df.user_id == user, 'cate_id'].values
             for cate in cate_list:
                 item_list = item_cate_df.loc[item_cate_df.brand_id == cate, 'item_id'].values
                 item_list = list(map(int, item_list))
                 user_dict[int(user)] = item_list
-        with open(self.mid_pre + "user_brand_item_dict.json", 'w', encoding='utf-8') as w:
+        with open(self.mid_pre + "user_brand_item_dict" + str(i) + '.json', 'w', encoding='utf-8') as w:
             json.dump(user_dict, w)
         return user_dict
 
