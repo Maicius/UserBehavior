@@ -6,7 +6,7 @@ curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = os.path.split(curPath)[0]
 sys.path.append(os.path.split(rootPath)[0])
 import json
-
+import datetime
 class clusterData(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
     mid_pre = "../mid_data/"
@@ -29,14 +29,17 @@ class clusterData(object):
         # self.cate_item_dict = {item[1]: item[0] for item in item_cate_list}
         self.item_brand_dict = {item[0]: item[2] for item in item_cate_list}
         # self.train['cate_id'] = self.train['item_id'].apply(lambda x: self.replace_item_id(x))
+        print("replace...", datetime.datetime.now())
         self.train['cate_id'] = self.train['item_id'].apply(lambda x: self.replace_item_id_with_brand(x))
         self.train['num'] = 1
         self.train.drop(index=self.train[self.train['cate_id'] == -1].index, inplace=True)
         # 每个用户对应的品牌，去重
+        print("每个用户对应的品牌，去重...", datetime.datetime.now())
         self.train = self.train.groupby(by=['user_id', 'cate_id'])['num'].sum().reset_index()
         self.train['num'] = 1
         self.user_set = set(self.train['user_id'])
         self.total_user_num = len(self.user_set)
+        print("find brand_id with user...", datetime.datetime.now())
         user_dict = self.cal_brand_id_with_user(df=self.train, user_set=self.user_set, item_cate_df=self.item_cate_df)
         # 每个品牌在不同的用户中出现的次数
         self.item_num = self.train.groupby(by=['cate_id'])['num'].sum().reset_index()
@@ -54,6 +57,7 @@ class clusterData(object):
     def cal_brand_id_with_user(self, df, user_set, item_cate_df):
         user_dict = {}
         for user in user_set:
+            print("user, ", user, datetime.datetime.now())
             cate_list = df.loc[df.user_id == user, 'cate_id'].values
             for cate in cate_list:
                 item_list = item_cate_df.loc[item_cate_df.brand_id == cate, 'item_id'].values
@@ -139,5 +143,6 @@ class clusterData(object):
         return data
 
 if __name__ =='__main__':
+    print("begin...", datetime.datetime.now())
     cd = clusterData(small=False)
     cd.find_frequent_cate()
