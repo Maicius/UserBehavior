@@ -8,7 +8,6 @@ sys.path.append(os.path.split(rootPath)[0])
 import json
 import datetime
 import multiprocessing
-import redis
 
 class clusterData(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -20,8 +19,6 @@ class clusterData(object):
         # 置信度
         self.support_degree = sup
         self.small = small
-        pool = redis.ConnectionPool(host='127.0.01', port=6379, decode_responses=True)
-        self.re = redis.StrictRedis(connection_pool=pool)
         self.user_dict_list = []
         self.process_num = 5
 
@@ -180,5 +177,5 @@ class clusterData(object):
 
 if __name__ =='__main__':
     print("begin...", datetime.datetime.now())
-    cd = clusterData(small=True)
+    cd = clusterData(small=False)
     cd.find_frequent_cate()
