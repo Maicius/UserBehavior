@@ -23,6 +23,7 @@ class clusterData(object):
         pool = redis.ConnectionPool(host='127.0.01', port=6379, decode_responses=True)
         self.re = redis.StrictRedis(connection_pool=pool)
         self.user_dict_list = []
+        self.process_num = 5
 
     def find_frequent_cate(self):
         # 平均每位用户点的小类——42
@@ -46,10 +47,10 @@ class clusterData(object):
         self.train['num'] = 1
         self.user_set = list(set(self.train['user_id']))
         self.total_user_num = len(self.user_set)
-        step = int(self.total_user_num // 10)
+        step = int(self.total_user_num // self.process_num)
 
         process_list = []
-        for i in range(10):
+        for i in range(self.process_num):
             p = multiprocessing.Process(target=self.cal_brand_id_with_user, args=(self.train, self.user_set, self.item_cate_df, i, step))
             p.daemon = True
             process_list.append(p)
@@ -116,7 +117,7 @@ class clusterData(object):
 
     def cal_frequent_items_iter(self, frequent_item_list, support_num):
         waste_group = []
-        for i in range(2, 4):
+        for i in range(2, 6):
             print("组合数：", i)
             frequent_items = combinations(frequent_item_list, i)
             find_combine = False
