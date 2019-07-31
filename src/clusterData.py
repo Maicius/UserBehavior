@@ -1,3 +1,4 @@
+# coding=utf-8
 import pandas as pd
 from itertools import combinations
 import os
@@ -14,6 +15,12 @@ class clusterData(object):
     mid_pre = "../mid_data/"
     real_pre = "../mid_data_random/"
     res_pre = "../result_data/"
+    behavior_score = {
+        'clk': 1,
+        'collect': 2,
+        'cart': 3,
+        'buy': 5
+    }
 
     def __init__(self, small = True, sup = 0.1):
         # 置信度
@@ -70,13 +77,14 @@ class clusterData(object):
         print("频繁项：", self.all_frequent_item_list)
         self.clean_frq_item_set()
         print("清洗后:", self.all_frequent_item_list)
+
         with open(self.mid_pre + "freq_item_list", 'w', encoding='utf-8') as w:
             w.writelines(self.all_frequent_item_list)
 
 
     def update_user_dict(self):
         all_user_dict = {}
-        for i in range(10):
+        for i in range(self.process_num):
             with open(self.mid_pre + "user_brand_item_dict" + str(i) + '.json', 'r', encoding='utf-8') as r:
                 data = json.load(r)
                 all_user_dict.update(data)
@@ -92,10 +100,9 @@ class clusterData(object):
             user = user_set[i]
             print(index, user, datetime.datetime.now())
             cate_list = df.loc[df.user_id == user, 'cate_id'].values
-            for cate in cate_list:
-                item_list = item_cate_df.loc[item_cate_df.brand_id == cate, 'item_id'].values
-                item_list = list(map(int, item_list))
-                user_dict[int(user)] = item_list
+            item_list = item_cate_df.loc[item_cate_df.brand_id.isin(cate_list), 'item_id'].values
+            item_list = list(map(int, item_list))
+            user_dict[int(user)] = item_list
         with open(self.mid_pre + "user_brand_item_dict" + str(i) + '.json', 'w', encoding='utf-8') as w:
             json.dump(user_dict, w)
         return user_dict
@@ -177,5 +184,5 @@ class clusterData(object):
 
 if __name__ =='__main__':
     print("begin...", datetime.datetime.now())
-    cd = clusterData(small=False)
+    cd = clusterData(small=True)
     cd.find_frequent_cate()
