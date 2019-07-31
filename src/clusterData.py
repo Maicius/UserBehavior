@@ -133,7 +133,7 @@ class clusterData(object):
         return data
 
     def load_train(self):
-        file_name = self.mid_pre + "train.csv" if self.small else self.mid_pre + "train.csv"
+        file_name = self.mid_pre + "train.csv" if self.small else self.pre + "train.csv"
         data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         return data
