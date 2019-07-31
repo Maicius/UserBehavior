@@ -51,7 +51,8 @@ class clusterData(object):
         print("频繁项：", self.all_frequent_item_list)
         self.clean_frq_item_set()
         print("清洗后:", self.all_frequent_item_list)
-
+        with open(self.mid_pre + "freq_item_list", 'w', encoding='utf-8') as w:
+            w.writelines(self.all_frequent_item_list)
         pass
 
     def cal_brand_id_with_user(self, df, user_set, item_cate_df):
@@ -88,7 +89,6 @@ class clusterData(object):
             for group in frequent_items:
                 group = set(group)
                 is_waste = False
-
                 for wp in waste_group:
                     if wp.issubset(group):
                         is_waste = True
@@ -102,7 +102,8 @@ class clusterData(object):
                         else:
                             item_set = item_set.intersection(temp_set)
                     if len(item_set) > support_num:
-                        self.all_frequent_item_list.append(group)
+                        freq_list = list(group)
+                        self.all_frequent_item_list.append(freq_list)
                         find_combine = True
                     else:
                         waste_group.append(group)
@@ -144,5 +145,5 @@ class clusterData(object):
 
 if __name__ =='__main__':
     print("begin...", datetime.datetime.now())
-    cd = clusterData(small=False)
+    cd = clusterData(small=True)
     cd.find_frequent_cate()
