@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "clusterData.py", line 2, in <module>
+    import pandas as pd
+ImportError: No module named pandas
