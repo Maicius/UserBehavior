@@ -22,13 +22,15 @@ class clusterData(object):
         'cart': 3,
         'buy': 5
     }
+    cluster_column = 'cluster'
 
-    def __init__(self, small = True, sup = 0.1):
+    def __init__(self, small = True, sup = 0.001):
         # 置信度
         self.support_degree = sup
         self.small = small
         self.user_dict_list = []
         self.process_num = 8
+        print("support degree:", self.support_degree)
         if not small:
             self.file_pre = self.res_pre
         else:
@@ -37,37 +39,65 @@ class clusterData(object):
     def reserve_file(self):
         pass
 
-    def find_frequent_cate(self):
+    def find_frequent_cate(self, cluster_target='item_id'):
         # 平均每位用户点的小类——42
         # 平均 item_id ———— 157
         # 平均 brand_id 84
-
-        p1 = threading.Thread(target=self.load_item_feature)
-        p2 = threading.Thread(target=self.load_train)
+        p1 = threading.Thread(target=self.load_train)
+        p2 = threading.Thread(target=self.load_item_feature)
         p1.setDaemon(True)
         p2.setDaemon(True)
         p1.start()
         p2.start()
         p1.join()
         p2.join()
-        item_cate_list = self.item_cate_df.values
-        # self.item_cate_dict = {item[0]: item[1] for item in item_cate_list}
-        # self.cate_item_dict = {item[1]: item[0] for item in item_cate_list}
-        self.item_brand_dict = {item[0]: item[1] for item in item_cate_list}
-        # self.train['cate_id'] = self.train['item_id'].apply(lambda x: self.replace_item_id(x))
-        print("replace...", datetime.datetime.now())
-        self.train['cate_id'] = self.train['item_id'].apply(lambda x: self.replace_item_id_with_brand(x))
-        self.train['num'] = 1
-        self.item_cate_group = self.item_cate_df.groupby(by='brand_id')
-        self.train.drop(self.train[self.train['cate_id'] == -1].index, inplace=True)
-        # 每个用户对应的品牌，去重
-        print("groupby...", datetime.datetime.now())
-        self.train = self.train.groupby(by=['user_id', 'cate_id'])['num'].sum().reset_index()
+        print("waiting for load data...")
+        if cluster_target == 'item_id':
+            self.train['cluster'] = self.train[cluster_target]
+        else:
+            print("replace item_id with target property")
+            self.item_cate_group = self.item_cate_df.groupby('item_id')
+            self.train[self.cluster_column] = self.train['item_id'].apply(lambda x: self.replace_item_with_target(x, cluster_target))
+            self.train.drop(self.train[self.train[self.cluster_column] == -1].index, inplace=True)
 
-        process_list = []
+        # groupby，去除重复的记录
+        print("groupby...", datetime.datetime.now())
+        self.train['num'] = 1
+        self.train = self.train.groupby(by=['user_id', self.cluster_column])['num'].sum().reset_index()
+        # self.multi_find_target_id_with_user()
+        # 每个target在不同的用户中出现的次数
+        self.train['num'] = 1
+        self.target_num = self.train.groupby(by=[self.cluster_column])['num'].sum().reset_index()
+        total_user_num = len(set(self.train['user_id']))
+        print("begin find init frequent item...", datetime.datetime.now())
+        support_num = self.support_degree * total_user_num
+        print("support num: ", support_num)
+        base_frequent_item_list = self.target_num[self.target_num['num'] > support_num][self.cluster_column].values
+        print("base freq item num:", len(base_frequent_item_list))
+        self.all_frequent_item_list = []
+
+        print("begin find freq item iter...", datetime.datetime.now())
+        # 只保留用户列和要聚类的列
+        self.train = self.train.loc[:, ['user_id', self.cluster_column]]
+        self.cluster_user_group = self.train.groupby(by=self.cluster_column)
+        self.cal_frequent_items_iter(base_frequent_item_list, support_num)
+        print("freq item:", self.all_frequent_item_list)
+        self.clean_frq_item_set()
+        print("after clean:", self.all_frequent_item_list)
+
+        with open(self.file_pre + "freq_item_list.txt", 'w', encoding='utf-8') as w:
+            w.writelines(self.all_frequent_item_list)
+
+    def replace_item_with_target(self, item_id, cluster_target):
+        try:
+            return self.item_cate_group.get_group(item_id)[cluster_target]
+        except IndexError:
+            return -1
+
+    def multi_find_target_id_with_user(self):
+        print('start cal target_id...', datetime.datetime.now())
         step = self.train.shape[0] // self.process_num
-        self.total_user_num = len(set(self.train['user_id']))
-        print('start cal brand...', datetime.datetime.now())
+        process_list = []
         for i in range(self.process_num):
             train_df = self.train.iloc[step * i:step * (i + 1), :]
             p = multiprocessing.Process(target=self.cal_brand_id_with_user, args=(train_df, self.item_cate_group, i))
@@ -78,24 +108,8 @@ class clusterData(object):
 
         for p in process_list:
             p.join()
-        print('end cal brand...', datetime.datetime.now())
+        print('end cal target_id...', datetime.datetime.now())
         self.update_user_dict()
-        print("find brand_id with user...", datetime.datetime.now())
-        # user_dict = self.cal_brand_id_with_user(df=self.train, user_set=self.user_set, item_cate_df=self.item_cate_df)
-        # 每个品牌在不同的用户中出现的次数
-        self.item_num = self.train.groupby(by=['cate_id'])['num'].sum().reset_index()
-        support_num = self.support_degree * self.total_user_num
-        base_frequent_item_list = self.item_num[self.item_num['num'] > support_num]['cate_id'].values
-        self.all_frequent_item_list = []
-        print(base_frequent_item_list)
-        self.cal_frequent_items_iter(base_frequent_item_list, support_num)
-        print("freq item:", self.all_frequent_item_list)
-        self.clean_frq_item_set()
-        print("after clean:", self.all_frequent_item_list)
-
-        with open(self.file_pre + "freq_item_list.txt", 'w', encoding='utf-8') as w:
-            w.writelines(self.all_frequent_item_list)
-
 
     def update_user_dict(self):
         all_user_dict = {}
@@ -137,6 +151,10 @@ class clusterData(object):
         return user_dict
 
     def clean_frq_item_set(self):
+        """
+        只保留频繁项集的最大集合，去除子集
+        :return:
+        """
         for i, item in enumerate(self.all_frequent_item_list):
             for j, item2 in enumerate(self.all_frequent_item_list):
                 if i == j:
@@ -152,6 +170,7 @@ class clusterData(object):
         waste_group = []
         for i in range(2, 6):
             print("group num：" + str(i))
+            # 生成备选的频繁子集
             frequent_items = combinations(frequent_item_list, i)
             find_combine = False
             for group in frequent_items:
@@ -164,7 +183,7 @@ class clusterData(object):
                 if not is_waste:
                     item_set = set()
                     for index, item in enumerate(group):
-                        temp_set = set(self.train.loc[self.train['cate_id'] == item, 'user_id'])
+                        temp_set = set(self.cluster_user_group.get_group(item)['user_id'])
                         if index == 0:
                             item_set = temp_set
                         else:
@@ -178,26 +197,12 @@ class clusterData(object):
             if not find_combine:
                 break
 
-
-    def replace_item_id(self, x):
-        try:
-            return self.item_cate_dict[x]
-        except:
-            return -1
-
-    def replace_item_id_with_brand(self, x):
-        try:
-            return self.item_brand_dict[x]
-        except:
-            return -1
-
     def load_item_feature(self):
         file_name = self.mid_pre + "item_feature.csv" if self.small else self.pre + "item_feature"
         data = pd.read_csv(file_name, sep='\t', header=None,
                            names=['item_id', 'cate_1_id', 'cate_id', 'brand_id', 'price'])
         print("load item feature, shape:", data.shape)
-        data = self.pre_process_item_feature(data)
-        self.item_cate_df = data.loc[:, ['item_id', 'brand_id']]
+        self.item_cate_df = self.pre_process_item_feature(data)
 
     @staticmethod
     def pre_process_item_feature(data):
@@ -206,7 +211,7 @@ class clusterData(object):
         return data
 
     def load_train(self):
-        file_name = self.mid_pre + "train.csv0.01" if self.small else self.pre + "train"
+        file_name = self.mid_pre + "train.csv0.01" if self.small else self.mid_pre + "train.csv0.1"
         data = pd.read_csv(file_name, sep='\t', header=None, names=['user_id', 'item_id', 'behavior_type', 'date'])
         print("load train data, shape:", data.shape)
         self.train = data
