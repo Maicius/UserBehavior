@@ -1,16 +1,9 @@
 import re
 import unittest
-from src.util import extract_age_pattern
 from src.main import UserBehavior
+import pandas as pd
 
 class UBTest(unittest.TestCase):
-    def test_extract_age(self):
-        test_str = ['[1,17]', '>=60', '[25,34]']
-        for item in test_str:
-            res = re.findall(extract_age_pattern, item)[0]
-            res = list(filter(lambda x: x != '', res))
-            res = int(sum(map(int, res)) / len(res))
-            print(res)
 
     def test_age_to_vector(self):
         test_str = ['[1,17]', '>=60', '[25,34]']
@@ -26,6 +19,10 @@ class UBTest(unittest.TestCase):
         test_str = ['1,2,3', '5', '2, 4, 6, 10']
         for item in test_str:
             print(UserBehavior.stage_to_vector(item))
+
+    def test_groupby_item_feature(self):
+        item_feature = pd.read_csv('../mid_data_random/item_feature_vector_Random.csv')
+        pass
 
 if __name__ =='__main__':
     unittest.main()

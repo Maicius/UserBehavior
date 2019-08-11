@@ -10,6 +10,7 @@ import json
 import datetime
 import multiprocessing
 import threading
+import redis
 
 class clusterData(object):
     pre = "../raw_data/ECommAI_ubp_round1_"
@@ -24,17 +25,28 @@ class clusterData(object):
     }
     cluster_column = 'cluster'
 
+    FIND_COMBINE_KEY = 'ub_find_combine'
+    freq_item_key = 'freq_item_list'
+
     def __init__(self, small = True, sup = 0.001):
         # 置信度
         self.support_degree = sup
         self.small = small
         self.user_dict_list = []
-        self.process_num = 8
+        self.process_num = 6
         print("support degree:", self.support_degree)
         if not small:
             self.file_pre = self.res_pre
         else:
             self.file_pre = self.mid_pre
+        self.re = self.get_re()
+
+    def get_re(self):
+        try:
+            pool = redis.ConnectionPool(host='127.0.0.1', port=6379, decode_responses=True)
+            return redis.StrictRedis(connection_pool=pool)
+        except BaseException as e:
+            raise e
 
     def reserve_file(self):
         pass
@@ -81,7 +93,9 @@ class clusterData(object):
         self.train = self.train.loc[:, ['user_id', self.cluster_column]]
         self.cluster_user_group = self.train.groupby(by=self.cluster_column)
         self.cal_frequent_items_iter(base_frequent_item_list, support_num)
+        self.all_frequent_item_list = self.re.lrange(self.freq_item_key, 0, -1)
         print("freq item:", self.all_frequent_item_list)
+
         self.clean_frq_item_set()
         print("after clean:", self.all_frequent_item_list)
 
@@ -90,8 +104,8 @@ class clusterData(object):
 
     def replace_item_with_target(self, item_id, cluster_target):
         try:
-            return self.item_cate_group.get_group(item_id)[cluster_target]
-        except IndexError:
+            return self.item_cate_group.get_group(item_id)[cluster_target].values[0]
+        except KeyError:
             return -1
 
     def multi_find_target_id_with_user(self):
@@ -156,7 +170,10 @@ class clusterData(object):
         :return:
         """
         for i, item in enumerate(self.all_frequent_item_list):
+            item = set(item)
+
             for j, item2 in enumerate(self.all_frequent_item_list):
+                item = set(item)
                 if i == j:
                     continue
                 else:
@@ -167,35 +184,54 @@ class clusterData(object):
                             print("item have delete", item)
 
     def cal_frequent_items_iter(self, frequent_item_list, support_num):
-        waste_group = []
         for i in range(2, 6):
             print("group num：" + str(i))
             # 生成备选的频繁子集
-            frequent_items = combinations(frequent_item_list, i)
-            find_combine = False
-            for group in frequent_items:
-                group = set(group)
-                is_waste = False
-                for wp in waste_group:
-                    if wp.issubset(group):
-                        is_waste = True
-                        break
-                if not is_waste:
-                    item_set = set()
-                    for index, item in enumerate(group):
-                        temp_set = set(self.cluster_user_group.get_group(item)['user_id'])
-                        if index == 0:
-                            item_set = temp_set
-                        else:
-                            item_set = item_set.intersection(temp_set)
-                    if len(item_set) > support_num:
-                        freq_list = list(group)
-                        self.all_frequent_item_list.append(freq_list)
-                        find_combine = True
-                    else:
-                        waste_group.append(group)
-            if not find_combine:
+            frequent_items = list(combinations(frequent_item_list, i))
+
+            frequent_num = len(frequent_items)
+            print("freq_items num:", frequent_num)
+            step = frequent_num // self.process_num
+            process_list = []
+            for i in range(self.process_num):
+                frequent_item = frequent_items[i * step: step*(i + 1)]
+                p = multiprocessing.Process(target=self.do_find_freq_item, args=[frequent_item, support_num])
+                p.daemon = True
+                process_list.append(p)
+            for p in process_list:
+                p.start()
+            for p in process_list:
+                p.join()
+            find_combine = int(self.re.get(self.FIND_COMBINE_KEY))
+            if find_combine == 0:
                 break
+
+
+    def do_find_freq_item(self, frequent_items, support_num):
+        find_combine = 0
+        waste_group = []
+        for i, group in enumerate(frequent_items):
+            group = set(group)
+            print(i, group, datetime.datetime.now())
+            is_waste = False
+            for wp in waste_group:
+                if wp.issubset(group):
+                    is_waste = True
+                    break
+            if not is_waste:
+                item_set = set()
+                for index, item in enumerate(group):
+                    temp_set = set(self.cluster_user_group.get_group(item)['user_id'])
+                    if index == 0:
+                        item_set = temp_set
+                    else:
+                        item_set = item_set.intersection(temp_set)
+                if len(item_set) > support_num:
+                    self.re.lpush(self.freq_item_key, group)
+                    find_combine = 1
+                else:
+                    waste_group.append(group)
+        self.re.set('ub_find_combine', find_combine)
 
     def load_item_feature(self):
         file_name = self.mid_pre + "item_feature.csv" if self.small else self.pre + "item_feature"
@@ -219,7 +255,7 @@ class clusterData(object):
 if __name__ =='__main__':
     t1 = datetime.datetime.now()
     print("begin...", datetime.datetime.now())
-    cd = clusterData(small=False)
-    cd.find_frequent_cate()
+    cd = clusterData(small=True)
+    cd.find_frequent_cate(cluster_target='cate_id')
     t2 = datetime.datetime.now()
     print("总耗时",(t2 - t1).seconds)
