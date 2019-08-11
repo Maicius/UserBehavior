@@ -13,17 +13,21 @@ import numpy as np
 import os
 import sys
 import json
+import multiprocessing
+
 curPath = os.path.abspath(os.path.dirname(__file__))
 rootPath = os.path.split(curPath)[0]
 sys.path.append(rootPath)
 print(sys.path)
 from src.model_dynamic import RecommenderNetworkConfig, RecommenderNetwork
 # 预测函数 动态列表输入形式
-
+import datetime
 USER_DIR = '../mid_data/user_feature_vector_Random.csv'
 ITEM_DIR = '../mid_data/item_feature_vector_Random.csv'
-
-
+mid_pre = '../mid_data/pred_'
+PROCESS_NUM = 6
+res_pre = '../result_data/'
+PRE = "../raw_data/ECommAI_ubp_round1_"
 def rating_item(network, user_id, item_id):
     # 预测单个用户对单个商品的评分（映射过来就是购买行为）
     # user_id,gender,age,career,income,stage
@@ -129,11 +133,11 @@ def predict(network, user_vector_list, item_vector_list):
 
     # user_id,gender,age,career,income,stage
     # user = np.reshape(user_vector_list, [test_batch_size, 6])
-    user = np.asarray(user_list)
+    user = np.asarray(user_vector_list)
 
     # item_id,cate_1_id,cate_id,brand_id,price
     # item = np.reshape(item_vector_list, [test_batch_size, 5])
-    item = np.asarray(item_list)
+    item = np.asarray(item_vector_list)
 
     inference = network.model([np.reshape(user[:, 1], [test_batch_size, 1]).astype(np.float32),
                                np.reshape(user[:, 2], [test_batch_size, 1]).astype(np.float32),
@@ -147,31 +151,106 @@ def predict(network, user_vector_list, item_vector_list):
                               training=False)
 
     pred = inference.numpy()
-    return pred
+    item_vector_df = pd.DataFrame(item_vector_list)
+    item_vector_df['score'] = pred
+    top50 = item_vector_df.sort_values(by='score', ascending=False)[0].head(50).values
 
+    return top50
 
-if __name__ == '__main__':
+x = '100216777 0 7 8 3 [7, 0, 0, 0, 0, 0]'
+def change_user_str_2_vec(x):
+    arr = x[:-1].split('[')
+    feature = list(map(int, arr[0].strip().split(' ')))
+    state = list(map(int, arr[1].split(', ')))
+    feature.append(state)
+    return feature
+
+def change_item_feature_str_2_vec(x):
+    arr = x.split('||')
+    data = []
+    for item in arr:
+        item = item[:-2]
+        temp = list(map(int, item.split(' ')))
+        temp[-1] = float(temp[-1])
+        data.append(temp)
+    return data
+
+def do_predict(index, data_df):
     config = RecommenderNetworkConfig()
     network = RecommenderNetwork(config)
+    count = 0
+    result = []
+    for data in data_df.values:
+        if count % 1000 == 0:
+            print(index, count, datetime.datetime.now())
+        item_list = data[1]
+        num = len(item_list)
+        # 一次传入一个用户
+        user_list = [data[0]] * num
+        top50 = predict(network, user_list, item_list)
+        predict_list = map(str, list(top50))
+        predict_list = ",".join(predict_list)
+        result.append(dict(user_id=int(data[0][0]), item_list=predict_list))
+        count += 1
+
+    with open(mid_pre + "tmp_result" + str(index) + ".json", 'w', encoding='utf-8') as w:
+        json.dump(result, w)
+
+def update_user_dict():
+    test_user_feature = pd.read_csv(PRE + "test", header=None, names=['user_id'])
+    all_user_dict = []
+    for i in range(PROCESS_NUM):
+        with open(mid_pre + "tmp_result" + str(i) + '.json', 'r', encoding='utf-8') as r:
+            data = json.load(r)
+            all_user_dict.extend(data)
+    data = pd.DataFrame(all_user_dict)
+    # result = pd.merge(self.test_user_feature, data, on='user_id')
+    result = test_user_feature.merge(data, how='inner', on='user_id')
+    result.to_csv(res_pre + "pred_result", sep="\t", header=None, index=False)
+
+if __name__ == '__main__':
+
     # result = rating_item(network, user_id='452224162', item_id='250302368')
     #
     # print(result)
 
-    # get_user_item_list(user_dir='../mid_data_random/user_feature_vector_Random.csv',
-    #                    item_dir='../mid_data_random/item_feature_vector_Random.csv',
-    #                    json_dirs=['../mid_data/tmp_result0.json',
-    #                               '../mid_data/tmp_result1.json',
-    #                               '../mid_data/tmp_result2.json',
-    #                               '../mid_data/tmp_result3.json',
-    #                               '../mid_data/tmp_result4.json'])
+    get_user_item_list(user_dir='../mid_data_random/user_feature_vector_Random.csv',
+                       item_dir='../mid_data_random/item_feature_vector_Random.csv',
+                       json_dirs=['../mid_data/tmp_result0.json',
+                                  '../mid_data/tmp_result1.json',
+                                  '../mid_data/tmp_result2.json',
+                                  '../mid_data/tmp_result3.json',
+                                  '../mid_data/tmp_result4.json'])
+    data_df = pd.read_csv('../mid_data_random/predict_list', sep="\|\|\|\|", header=None, names=['user', 'item'])
+    # with open("../mid_data_random/predict_list", 'r', encoding='utf-8') as r:
+    #     data = r.readline()
+    #     data = data.split('||')
+    #     data_df.append(data)
+    # data_df = pd.DataFrame(data_df)
+    print("finish to read file", datetime.datetime.now())
+    data_df['user'] = data_df['user'].apply(lambda x: change_user_str_2_vec(x))
+    data_df['item'] = data_df['item'].apply(lambda x: change_item_feature_str_2_vec(x))
+    print("finish to change structure ", datetime.datetime.now())
+    # user_list = [[10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
+    #              [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
+    #              [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
+    #              [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]]]
+    # item_list = [[463911171, 61, 2151, 13395, 2],
+    #              [900775433, 61, 2151, 13395, 1.0],
+    #              [1048597011, 92, 1982, 104059, 9.0],
+    #              [953063189, 107, 452, 80840, 18.0]]
+    process_list = []
+    all_user_num = data_df.shape[0]
+    step = all_user_num // PROCESS_NUM
+    for i in range(PROCESS_NUM):
+        temp_df = data_df.loc[i * step: (i + 1) * step, :]
+        p = multiprocessing.Process(target=do_predict,
+                                    args=[i,temp_df])
+        p.daemon = True
+        process_list.append(p)
+    for p in process_list:
+        p.start()
 
-    user_list = [[10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
-                 [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
-                 [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]],
-                 [10000100, 0, 7, 1, 8, [1, 6, 4, 2, 0, 0]]]
-    item_list = [[463911171, 61, 2151, 13395, 2.0],
-                 [900775433, 61, 2151, 13395, 1.0],
-                 [1048597011, 92, 1982, 104059, 9.0],
-                 [953063189, 107, 452, 80840, 18.0]]
-    pred = predict(network, user_list, item_list)
-
+    for p in process_list:
+        p.join()
+    update_user_dict()
