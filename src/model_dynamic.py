@@ -26,7 +26,7 @@ class RecommenderNetworkConfig(object):
     train_batch_size = 512
     test_batch_size = 512
     MODEL_DIR = '../model'
-    checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints_0_1')
+    checkpoint_dir = os.path.join(MODEL_DIR, 'checkpoints-scale')
     checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt')
     train_dir = os.path.join(MODEL_DIR, 'summaries', 'train')
     test_dir = os.path.join(MODEL_DIR, 'summaries', 'eval')

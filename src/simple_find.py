@@ -46,24 +46,23 @@ class Simple_find(object):
         top_50_hot = top_50_hot.sort_values(by=['behavior_type'], ascending=False)
         top_50_hot = top_50_hot.loc[top_50_hot['behavior_type'] > 10,:]
         top_50_hot = top_50_hot.sample(n=1000)
-
-        self.train = self.train.groupby(by=['user_id'])
-        # users = self.test_user_feature['user_id'].values
-        # user_num = self.test_user_feature.shape[0]
-        step = user_num // self.process_num
-
-        process_list = []
-        for i in range(self.process_num):
-            p = multiprocessing.Process(target=self.find_item_for_user,
-                                        args=(users, top_50_hot, self.already_buy_df, self.train, i, step))
-            p.daemon = True
-            process_list.append(p)
-        for p in process_list:
-            p.start()
-
-        for p in process_list:
-            p.join()
-        self.update_user_dict()
+        top_50_hot.to_csv(self.mid_pre + "top_50_hot.csv")
+        # self.train = self.train.groupby(by=['user_id'])
+        #
+        # step = user_num // self.process_num
+        #
+        # process_list = []
+        # for i in range(self.process_num):
+        #     p = multiprocessing.Process(target=self.find_item_for_user,
+        #                                 args=(users, top_50_hot, self.already_buy_df, self.train, i, step))
+        #     p.daemon = True
+        #     process_list.append(p)
+        # for p in process_list:
+        #     p.start()
+        #
+        # for p in process_list:
+        #     p.join()
+        # self.update_user_dict()
 
     def find_item_for_user(self, users, top_50_hot,already_buy_df, train, index, step):
         print("进入进程", index)
