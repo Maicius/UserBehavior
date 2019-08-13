@@ -238,6 +238,7 @@ def do_predict(index, data_df):
 
 def update_user_dict():
     test_user_feature = pd.read_csv(PRE + "test", header=None, names=['user_id'])
+    print("test user shape:", test_user_feature.shape)
     all_user_dict = []
     for i in range(PROCESS_NUM + 1):
         print(i)
@@ -260,7 +261,7 @@ def update_user_dict():
     print("total part:", len(part_user_set))
     for user in part_user_set:
         count += 1
-        print(count)
+        # print(count)
         predict_set = set(top_50_hot.sample(n=50)['item_id'])
         predict_list = map(str, list(predict_set))
         predict_list = ",".join(predict_list)
@@ -268,6 +269,9 @@ def update_user_dict():
     data = pd.DataFrame(all_user_dict)
     # result = pd.merge(self.test_user_feature, data, on='user_id')
     result = test_user_feature.merge(data, how='inner', on='user_id')
+    print("result shape:", result.shape)
+    result = result.drop_duplicates('user_id')
+    print("drop duplicate:", result.shape)
     result.to_csv(res_pre + "pred_result", sep="\t", header=None, index=False)
 
 if __name__ == '__main__':
@@ -284,35 +288,35 @@ if __name__ == '__main__':
     #              [1048597011, 92, 1982, 104059, 9.0],
     #              [953063189, 107, 452, 80840, 18.0]]
 
-    get_user_item_list(user_dir='../mid_data_random/user_feature_vector_Random.csv',
-                       item_dir='../mid_data_random/item_feature_vector_Random.csv',
-                       json_dirs=['../mid_data/tmp_result0.json',
-                                  '../mid_data/tmp_result1.json',
-                                  '../mid_data/tmp_result2.json',
-                                  '../mid_data/tmp_result3.json',
-                                  '../mid_data/tmp_result4.json'])
-
-    data_df = pd.read_csv('../mid_data_random/predict_list', sep="\|\|\|\|", header=None, names=['user', 'item'])
-    print("finish to read file", datetime.datetime.now())
-    data_df['user'] = data_df['user'].apply(lambda x: change_user_str_2_vec(x))
-    data_df['item'] = data_df['item'].apply(lambda x: change_item_feature_str_2_vec(x))
-    print("finish to change structure ", datetime.datetime.now())
-
-    process_list = []
-    all_user_num = data_df.shape[0]
-    step = all_user_num // PROCESS_NUM
-    for i in range(PROCESS_NUM):
-        temp_df = data_df.loc[i * step: (i + 1) * step, :]
-        p = multiprocessing.Process(target=do_predict,
-                                    args=[i,temp_df])
-        p.daemon = True
-        process_list.append(p)
-    for p in process_list:
-        p.start()
-    for p in process_list:
-        p.join()
-
-    temp_df = data_df.loc[PROCESS_NUM * step:, :]
-    do_predict(PROCESS_NUM, temp_df)
+    # get_user_item_list(user_dir='../mid_data_random/user_feature_vector_Random.csv',
+    #                    item_dir='../mid_data_random/item_feature_vector_Random.csv',
+    #                    json_dirs=['../mid_data/tmp_result0.json',
+    #                               '../mid_data/tmp_result1.json',
+    #                               '../mid_data/tmp_result2.json',
+    #                               '../mid_data/tmp_result3.json',
+    #                               '../mid_data/tmp_result4.json'])
+    #
+    # data_df = pd.read_csv('../mid_data_random/predict_list', sep="\|\|\|\|", header=None, names=['user', 'item'])
+    # print("finish to read file", datetime.datetime.now())
+    # data_df['user'] = data_df['user'].apply(lambda x: change_user_str_2_vec(x))
+    # data_df['item'] = data_df['item'].apply(lambda x: change_item_feature_str_2_vec(x))
+    # print("finish to change structure ", datetime.datetime.now())
+    #
+    # process_list = []
+    # all_user_num = data_df.shape[0]
+    # step = all_user_num // PROCESS_NUM
+    # for i in range(PROCESS_NUM):
+    #     temp_df = data_df.loc[i * step: (i + 1) * step, :]
+    #     p = multiprocessing.Process(target=do_predict,
+    #                                 args=[i,temp_df])
+    #     p.daemon = True
+    #     process_list.append(p)
+    # for p in process_list:
+    #     p.start()
+    # for p in process_list:
+    #     p.join()
+    #
+    # temp_df = data_df.loc[PROCESS_NUM * step:, :]
+    # do_predict(PROCESS_NUM, temp_df)
 
     update_user_dict()
