@@ -95,8 +95,8 @@ class Simple_find(object):
                     if i > 10:
                         print("error")
                         break
-            # elif set_length > 50:
-            #     predict_set = sample(list(predict_set), 50)
+            elif set_length > 50:
+                predict_set = sample(list(predict_set), 50)
 
             # print(predict_set)
             predict_list = map(str, list(predict_set))

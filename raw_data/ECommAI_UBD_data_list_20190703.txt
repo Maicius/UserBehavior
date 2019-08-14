@@ -1,0 +1,16 @@
+round1_a
+Table 1. User Behavior Prediction
+http://tianchi-media.oss-cn-beijing.aliyuncs.com/231719_UBDP/round1/ECommAI_ubp_round1_test.tar.gz
+md5:7dfaa5580aec310ab395d22b4757641a
+
+Table 2. User to Item Behavior Data
+http://tianchi-media.oss-cn-beijing.aliyuncs.com/231719_UBDP/round1/ECommAI_ubp_round1_train.tar.gz
+md5:a2b90594e389fbcf344b26f975a2cbfa
+
+Table 3. User Attribute Data
+http://tianchi-media.oss-cn-beijing.aliyuncs.com/231719_UBDP/round1/ECommAI_ubp_round1_user_feature.tar.gz
+md5:3e4bfb76b88aabd98f4eac2af299c599  
+
+Table 4. Item Attribute Data
+http://tianchi-media.oss-cn-beijing.aliyuncs.com/231719_UBDP/round1/ECommAI_ubp_round1_item_feature.tar.gz
+md5:92dd48c1e2050607c70bf8f39393a7da  
